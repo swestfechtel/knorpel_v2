@@ -223,6 +223,8 @@ def main():
         res = np.empty(len(dirs), dtype='object')
         for i, directory in enumerate(dirs):
             res[i] = fun(directory)
+            if i % 10 == 0:
+                logging.debug(f'Iteration #{i}')
 
         df = pd.DataFrame.from_dict(res)
         df.index = df['dir']
