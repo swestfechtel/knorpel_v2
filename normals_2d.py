@@ -426,6 +426,8 @@ def main():
         dirs = utility.get_subdirs(chunk)
         res = np.empty(len(dirs), dtype='object')
         for i, directory in enumerate(dirs):
+            if i % 10 == 0:
+                logging.debug(f'Iteration #{i}')
             res[i] = helper(directory)
 
         df = pd.DataFrame.from_dict(res)
