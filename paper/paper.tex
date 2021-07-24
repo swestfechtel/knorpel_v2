@@ -1,0 +1,34 @@
+\documentclass[]{article}
+
+\usepackage{titlesec}
+\usepackage{minted}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage[autostyle]{csquotes}
+\usepackage{graphicx}  
+% \usepackage{svg}
+
+\titleformat{\section}[display]
+{\normalfont\bfseries}{}{0pt}{\Large}
+
+\titleformat{\subsection}[display]
+{\normalfont\bfseries}{}{0pt}{\Large}
+
+\newcommand{\norm}[1]{\lvert \lvert #1 \rvert \rvert}
+
+%opening
+\title{Automatic Measurement of Cartilage Thickness in the Human Knee}
+\author{Simon Westfechtel, B.Sc.}
+
+\begin{document}
+	
+	\maketitle
+	
+	\include{introduction}
+	
+	\bibliographystyle{alpha}
+	\bibliography{sources}
+	
+\end{document}

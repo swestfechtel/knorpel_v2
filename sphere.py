@@ -211,7 +211,7 @@ def main():
     if os.path.exists('/work/scratch/westfechtel/pylogs/sphere.log'):
         os.remove('/work/scratch/westfechtel/pylogs/sphere.log')
 
-    logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/mesh.log', encoding='utf-8', level=logging.DEBUG)
+    logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/sphere.log', encoding='utf-8', level=logging.DEBUG)
     logging.debug('Entered main.')
 
     try:
@@ -222,9 +222,12 @@ def main():
         dirs = utility.get_subdirs(chunk)
         res = np.empty(len(dirs), dtype='object')
         for i, directory in enumerate(dirs):
-            res[i] = fun(directory)
-            if i % 10 == 0:
-                logging.debug(f'Iteration #{i}')
+            try:
+                res[i] = fun(directory)
+                if i % 10 == 0:
+                    logging.debug(f'Iteration #{i}')
+            except Exception:
+                continue
 
         df = pd.DataFrame.from_dict(res)
         df.index = df['dir']
