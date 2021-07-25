@@ -434,6 +434,7 @@ def main():
                 continue
 
         res = res[res != None]
+        res = list(res)
         df = pd.DataFrame.from_dict(res)
         df.index = df['dir']
         df = df.drop('dir', axis=1)
