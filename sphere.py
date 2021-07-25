@@ -220,7 +220,6 @@ def main():
         logging.debug(f'Using chunk {sys.argv[1]} with length {len(chunk)}.')
 
         dirs = utility.get_subdirs(chunk)
-        dirs = dirs[:1]
         res = np.empty(len(dirs), dtype='object')
         for i, directory in enumerate(dirs):
             try:
