@@ -433,6 +433,7 @@ def main():
             except Exception:
                 continue
 
+        res = res[res != None]
         df = pd.DataFrame.from_dict(res)
         df.index = df['dir']
         df = df.drop('dir', axis=1)

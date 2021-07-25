@@ -220,6 +220,7 @@ def main():
         logging.debug(f'Using chunk {sys.argv[1]} with length {len(chunk)}.')
 
         dirs = utility.get_subdirs(chunk)
+        dirs = dirs[:1]
         res = np.empty(len(dirs), dtype='object')
         for i, directory in enumerate(dirs):
             try:
@@ -229,6 +230,7 @@ def main():
             except Exception:
                 continue
 
+        res = res[res != None]
         df = pd.DataFrame.from_dict(res)
         df.index = df['dir']
         df = df.drop('dir', axis=1)
