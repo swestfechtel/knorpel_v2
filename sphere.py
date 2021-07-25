@@ -232,6 +232,7 @@ def main():
 
         res = res[res != None]
         df = pd.DataFrame.from_dict(res)
+        print(df)
         df.index = df['dir']
         df = df.drop('dir', axis=1)
         # df.to_excel('mesh.xlsx')
