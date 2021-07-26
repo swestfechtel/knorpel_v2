@@ -136,10 +136,12 @@ def function_for_pool(layer, left_regions, right_regions, layer_index, color_cod
     logging.debug(f'BEGIN {inspect.currentframe().f_code.co_name}')
 
     if len(layer) == 0:
+        logging.debug(f'{inspect.currentframe().f_code.co_name} layer is empty')
         return [0, 0]
 
     arr = utility.build_array(layer, isolate=True, isolator=color_code)
     if len(arr) == 0:
+        logging.debug(f'{inspect.currentframe().f_code.co_name} array is empty')
         return [0, 0]
 
     x, y = utility.get_x_y(arr[0])
@@ -147,9 +149,11 @@ def function_for_pool(layer, left_regions, right_regions, layer_index, color_cod
     try:
         z = np.polyfit(x, y, 2)
         fun = np.poly1d(z)
-    except np.linalg.LinAlgError:
+    except np.linalg.LinAlgError as e:
+        logging.debug(f'{inspect.currentframe().f_code.co_name} {traceback.format_exc()}')
         return [0, 0]
-    except Exception:
+    except Exception as e:
+        logging.debug(f'{inspect.currentframe().f_code.co_name} {traceback.format_exc()}')
         return [0, 0]
 
     x_new = np.linspace(x[0], x[-1], (x[-1] - x[0]) * 100)
@@ -164,6 +168,8 @@ def function_for_pool(layer, left_regions, right_regions, layer_index, color_cod
     elif color_code == 3:
         logging.debug(f'END {inspect.currentframe().f_code.co_name}')
         return calculate_femoral_thickness(max_vectors, min_vectors, normals, layer_index, left_regions, right_regions, split_vector, sitk_image)
+    else:
+        raise ValueError(f'Color code mismatch: {color_code}')
 
 
 def calculate_femoral_thickness(max_vectors, min_vectors, normals, layer_index, left_regions, right_regions, split_vector, sitk_image):
