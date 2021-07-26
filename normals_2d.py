@@ -4,6 +4,7 @@ import sys
 import traceback
 import utility
 import os
+import inspect
 
 import numpy as np
 import pandas as pd
@@ -19,6 +20,8 @@ def average_femoral_thickness_per_region(np_image, sitk_image):
     :param np_image: numpy array representation of the mri scan
     :return: two dictionaries containing the summed thickness and the denominator for averaging per region, respectively
     """
+    logging.debug(f'BEGIN {inspect.currentframe().f_code.co_name}')
+
     femoral_cartilage = utility.build_3d_cartilage_array(np_image, 3)
     vectors = [list(elem) for elem in femoral_cartilage]
     cluster = KMeans(n_clusters=1, random_state=0).fit(vectors)
@@ -57,6 +60,7 @@ def average_femoral_thickness_per_region(np_image, sitk_image):
         count_list.append(new_res[i + 1])
         i += 2
 
+    logging.debug(f'END {inspect.currentframe().f_code.co_name}')
     return thickness_list, count_list
 
 
@@ -66,6 +70,8 @@ def average_tibial_thickness_per_region(np_image, sitk_image):
     :param np_image: numpy array representation of the mri scan
     :return: two dictionaries containing the summed thickness and the denominator for averaging per region, respectively
     """
+    logging.debug(f'BEGIN {inspect.currentframe().f_code.co_name}')
+
     tibial_cartilage = utility.build_3d_cartilage_array(np_image, 4)
     vectors = [list(elem) for elem in tibial_cartilage]
     cluster = KMeans(n_clusters=1, random_state=0).fit(vectors)
@@ -111,6 +117,7 @@ def average_tibial_thickness_per_region(np_image, sitk_image):
         count_list.append(new_res[i + 1])
         i += 2
 
+    logging.debug(f'END {inspect.currentframe().f_code.co_name}')
     return thickness_list, count_list
 
 
@@ -126,6 +133,8 @@ def function_for_pool(layer, left_regions, right_regions, layer_index, color_cod
     :param split_vector: the vector with which to split into left and right plate
     :return: layer thickness, number of normals
     """
+    logging.debug(f'BEGIN {inspect.currentframe().f_code.co_name}')
+
     if len(layer) == 0:
         return [0, 0]
 
@@ -150,8 +159,10 @@ def function_for_pool(layer, left_regions, right_regions, layer_index, color_cod
     min_vectors = sup_vectors.groupby(sup_vectors['x']).min().y.to_numpy()
 
     if color_code == 4:
+        logging.debug(f'END {inspect.currentframe().f_code.co_name}')
         return calculate_tibial_thickness(max_vectors, min_vectors, normals, layer_index, left_regions, right_regions, split_vector, sitk_image)
     elif color_code == 3:
+        logging.debug(f'END {inspect.currentframe().f_code.co_name}')
         return calculate_femoral_thickness(max_vectors, min_vectors, normals, layer_index, left_regions, right_regions, split_vector, sitk_image)
 
 
@@ -168,6 +179,8 @@ def calculate_femoral_thickness(max_vectors, min_vectors, normals, layer_index, 
     :param split_vector: the vector with which to split into left and right plate
     :return: total thickness, number of normals
     """
+    logging.debug(f'BEGIN {inspect.currentframe().f_code.co_name}')
+
     average_thickness = dict()
     normal_count = dict()
 
@@ -238,6 +251,7 @@ def calculate_femoral_thickness(max_vectors, min_vectors, normals, layer_index, 
             x_val += 1
             continue
 
+    logging.debug(f'END {inspect.currentframe().f_code.co_name}')
     return [average_thickness, normal_count]
 
 
@@ -254,6 +268,8 @@ def calculate_tibial_thickness(max_vectors, min_vectors, normals, layer_index, l
     :param split_vector: the vector with which to split into left and right plate
     :return: total thickness, number of normals
     """
+    logging.debug(f'BEGIN {inspect.currentframe().f_code.co_name}')
+
     average_thickness = dict()
     normal_count = dict()
 
@@ -333,6 +349,7 @@ def calculate_tibial_thickness(max_vectors, min_vectors, normals, layer_index, l
             x_val += 1
             continue
 
+    logging.debug(f'END {inspect.currentframe().f_code.co_name}')
     return [average_thickness, normal_count]
 
 
@@ -345,11 +362,14 @@ def calculate_normals(x, df: pd.DataFrame, fun) -> list:
     :param fun: the function of which to calculate the normal vectors
     :return: the normal vectors of function fun at x
     """
+    logging.debug(f'BEGIN {inspect.currentframe().f_code.co_name}')
+
     normals = list()
 
     for i in range(df.groupby(df['x']).max().shape[0]):
         normals.append(normal(x, i, fun))
 
+    logging.debug(f'END {inspect.currentframe().f_code.co_name}')
     return normals
 
 
@@ -362,6 +382,8 @@ def normal(x, x0, fun):
     :param fun: the function of which to calculate the normal
     :return: the normal of function fun at x0
     """
+    logging.debug(f'BEGIN {inspect.currentframe().f_code.co_name}')
+
     return [x0, fun(x0) - (1 / derivative(x0, fun)) * (x - x0)]
 
 
@@ -373,11 +395,16 @@ def derivative(x0, fun):
     :param fun: the function of which to calculate the derivative
     :return: the derivative of function fun at x0
     """
+    logging.debug(f'BEGIN {inspect.currentframe().f_code.co_name}')
+
     h = 10**(-8)
+    logging.debug(f'END {inspect.currentframe().f_code.co_name}')
     return (fun(x0 + h) - fun(x0)) / h
 
 
 def helper(directory):
+    logging.debug(f'BEGIN {inspect.currentframe().f_code.co_name}')
+
     sitk_image, np_image = utility.read_image(f'/images/Shape/Medical/Knees/OAI/Manual_Segmentations/{directory}/{directory}_segm.mhd')
     tib_res = average_tibial_thickness_per_region(np_image, sitk_image)
     fem_res = average_femoral_thickness_per_region(np_image, sitk_image)
@@ -408,21 +435,25 @@ def helper(directory):
         fem_d[key + '.aMiv'] = np.nanmean(np.sort(value)[:math.ceil(len(value) * 0.01)])
         fem_d[key] = np.nanmean(value)
 
+    logging.debug(f'END {inspect.currentframe().f_code.co_name}')
     return {**{'dir': directory}, **fem_d, **tib_d}
 
 
 def main():
-    if os.path.exists('/work/scratch/westfechtel/pylogs/2d.log'):
-        os.remove('/work/scratch/westfechtel/pylogs/2d.log')
-
-    logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/2d.log', encoding='utf-8', level=logging.DEBUG)
+    logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/normals/2d_default.log', encoding='utf-8', level=logging.DEBUG, filemode='w')
     logging.debug('Entered main.')
 
     try:
         assert len(sys.argv) == 2
         chunk = np.load(f'/work/scratch/westfechtel/chunks/{sys.argv[1]}.npy')
 
-        logging.basicConfig(filename=f'/work/scratch/westfechtel/pylogs/2d_{sys.argv[1]}.log', encoding='utf-8', level=logging.DEBUG)
+        filehandler = logging.FileHandler(f'/work/scratch/westfechtel/pylogs/normals/{sys.argv[1]}.log', mode='w')
+        filehandler.setLevel(logging.DEBUG)
+        root = logging.getLogger()
+        for handler in root.handlers[:]:
+            root.removeHandler(handler)
+
+        root.addHandler(filehandler)
         logging.debug(f'Using chunk {sys.argv[1]} with length {len(chunk)}.')
 
         dirs = utility.get_subdirs(chunk)

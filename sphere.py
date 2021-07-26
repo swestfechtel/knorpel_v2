@@ -208,17 +208,20 @@ def fun(directory):
 
 
 def main():
-    if os.path.exists('/work/scratch/westfechtel/pylogs/sphere.log'):
-        os.remove('/work/scratch/westfechtel/pylogs/sphere.log')
-
-    logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/sphere.log', encoding='utf-8', level=logging.DEBUG)
+    logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/sphere/sphere_default.log', encoding='utf-8', level=logging.DEBUG, filemode='w')
     logging.debug('Entered main.')
 
     try:
         assert len(sys.argv) == 2
         chunk = np.load(f'/work/scratch/westfechtel/chunks/{sys.argv[1]}.npy')
-        logging.basicConfig(filename=f'/work/scratch/westfechtel/pylogs/sphere_{sys.argv[1]}.log', encoding='utf-8',
-                            level=logging.DEBUG)
+
+        filehandler = logging.FileHandler(f'/work/scratch/westfechtel/pylogs/sphere/{sys.argv[1]}.log', mode='w')
+        filehandler.setLevel(logging.DEBUG)
+        root = logging.getLogger()
+        for handler in root.handlers[:]:
+            root.removeHandler(handler)
+
+        root.addHandler(filehandler)
         logging.debug(f'Using chunk {sys.argv[1]} with length {len(chunk)}.')
 
         dirs = utility.get_subdirs(chunk)
