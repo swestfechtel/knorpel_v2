@@ -2,6 +2,8 @@ import math
 import os
 import string
 import traceback
+import logging
+import inspect
 
 import numpy as np
 import SimpleITK as sitk
@@ -22,11 +24,15 @@ def get_x_y(array: list):
     :return: [x1, x2, ...], [y1, y2, ...] | x1 < x2 < ...
     """
     array += [None]
+    logging.debug(f'{inspect.currentframe().f_code.co_name} {array}')
     tmp = np.array(array, dtype='object')
+    logging.debug(f'{inspect.currentframe().f_code.co_name} {tmp}')
     tmp = tmp[tmp != None]
+    logging.debug(f'{inspect.currentframe().f_code.co_name} {tmp}')
 
     try:
         tmp = np.sort(tmp)
+        logging.debug(f'{inspect.currentframe().f_code.co_name} {tmp}')
         x = [item[0] for item in tmp]
         y = [item[1] for item in tmp]
     except TypeError as e:
