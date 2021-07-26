@@ -146,7 +146,7 @@ def function_for_pool(layer, left_regions, right_regions, layer_index, color_cod
         logging.debug(f'{inspect.currentframe().f_code.co_name} array is empty')
         return [0, 0]
 
-    x, y = utility.get_x_y(arr[0])
+    x, y = utility.get_x_y(arr)
     if not x:
         logging.debug(f'{inspect.currentframe().f_code.co_name} error in get_x_y')
         logging.debug(y[0])
