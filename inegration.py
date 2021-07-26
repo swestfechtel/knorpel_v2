@@ -80,7 +80,7 @@ def function_for_pool(directory):
             continue
 
         femoral_cartilage = utility.build_array(layer, isolate=True, isolator=3)
-        x, y = utility.get_x_y(femoral_cartilage[0])
+        x, y = utility.get_x_y(femoral_cartilage)
         df = pd.DataFrame(data={'x': x, 'y': y})
         max_y = df.groupby(by='x').max()
         min_y = df.groupby(by='x').min()
@@ -130,8 +130,8 @@ def function_for_pool(directory):
         if len(layer) == 0:
             continue
 
-        femoral_cartilage = utility.build_array(layer, isolate=True, isolator=4)
-        x, y = utility.get_x_y(femoral_cartilage[0])
+        tibial_cartilage = utility.build_array(layer, isolate=True, isolator=4)
+        x, y = utility.get_x_y(tibial_cartilage)
         df = pd.DataFrame(data={'x': x, 'y': y})
         max_y = df.groupby(by='x').max()
         min_y = df.groupby(by='x').min()
