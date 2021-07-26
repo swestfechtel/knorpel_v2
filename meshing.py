@@ -225,6 +225,8 @@ def main():
     try:
         assert len(sys.argv) == 2
         chunk = np.load(f'/work/scratch/westfechtel/chunks/{sys.argv[1]}.npy')
+        logging.basicConfig(filename=f'/work/scratch/westfechtel/pylogs/mesh_{sys.argv[1]}.log', encoding='utf-8',
+                            level=logging.DEBUG)
         logging.debug(f'Using chunk {sys.argv[1]} with length {len(chunk)}.')
 
         with Pool() as pool:
