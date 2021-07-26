@@ -471,7 +471,7 @@ def isolate_cartilage(layer: np.array, color_code: int = 3) -> np.array:
     return cartilage[np.any(cartilage == color_code, axis=1), :]
 
 
-def build_array(layer: np.array, isolate: bool = False, isolator: int = 3) -> [list, list]:
+def build_array(layer: np.array, isolate: bool = False, isolator: int = 3) -> list:
     """
     Builds an array for a single layer.
 
