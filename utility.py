@@ -29,12 +29,7 @@ def get_x_y(array: list) -> [list, list]:
         x = [item[0] for item in tmp]
         y = [item[1] for item in tmp]
     except TypeError:
-        with open('log.log', mode='w') as file:
-            file.write(f'{tmp}')
-            file.write(f'{array}')
-            file.close()
-
-        raise KeyboardInterrupt
+        return None, None
 
     return x, y
 
