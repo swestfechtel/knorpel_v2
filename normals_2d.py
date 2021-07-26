@@ -145,7 +145,9 @@ def function_for_pool(layer, left_regions, right_regions, layer_index, color_cod
         return [0, 0]
 
     x, y = utility.get_x_y(arr[0])
+    logging.debug(f'{inspect.currentframe().f_code.co_name} 1')
     sup_vectors = pd.DataFrame(list(zip(x, y)), columns=['x', 'y'])
+    logging.debug(f'{inspect.currentframe().f_code.co_name} 2')
     try:
         z = np.polyfit(x, y, 2)
         fun = np.poly1d(z)
@@ -156,11 +158,17 @@ def function_for_pool(layer, left_regions, right_regions, layer_index, color_cod
         logging.debug(f'{inspect.currentframe().f_code.co_name} {traceback.format_exc()}')
         return [0, 0]
 
+    logging.debug(f'{inspect.currentframe().f_code.co_name} 3')
     x_new = np.linspace(x[0], x[-1], (x[-1] - x[0]) * 100)
+    logging.debug(f'{inspect.currentframe().f_code.co_name} 4')
     normals = calculate_normals(x_new, sup_vectors, fun)
+    logging.debug(f'{inspect.currentframe().f_code.co_name} 5')
 
+    logging.debug(f'{inspect.currentframe().f_code.co_name} 6')
     max_vectors = sup_vectors.groupby(sup_vectors['x']).max().y.to_numpy()
+    logging.debug(f'{inspect.currentframe().f_code.co_name} 7')
     min_vectors = sup_vectors.groupby(sup_vectors['x']).min().y.to_numpy()
+    logging.debug(f'{inspect.currentframe().f_code.co_name} 8')
 
     if color_code == 4:
         logging.debug(f'END {inspect.currentframe().f_code.co_name}')
@@ -169,6 +177,7 @@ def function_for_pool(layer, left_regions, right_regions, layer_index, color_cod
         logging.debug(f'END {inspect.currentframe().f_code.co_name}')
         return calculate_femoral_thickness(max_vectors, min_vectors, normals, layer_index, left_regions, right_regions, split_vector, sitk_image)
     else:
+        logging.debug(f'END {inspect.currentframe().f_code.co_name}')
         raise ValueError(f'Color code mismatch: {color_code}')
 
 
