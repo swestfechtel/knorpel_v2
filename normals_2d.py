@@ -139,7 +139,9 @@ def function_for_pool(layer, left_regions, right_regions, layer_index, color_cod
         logging.debug(f'{inspect.currentframe().f_code.co_name} layer is empty')
         return [0, 0]
 
+    logging.debug(f'{inspect.currentframe().f_code.co_name} -1')
     arr = utility.build_array(layer, isolate=True, isolator=color_code)
+    logging.debug(f'{inspect.currentframe().f_code.co_name} 0')
     if len(arr) == 0:
         logging.debug(f'{inspect.currentframe().f_code.co_name} array is empty')
         return [0, 0]
