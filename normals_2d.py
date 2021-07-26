@@ -149,6 +149,8 @@ def function_for_pool(layer, left_regions, right_regions, layer_index, color_cod
     x, y = utility.get_x_y(arr[0])
     if not x or not y:
         logging.debug(f'{inspect.currentframe().f_code.co_name} error in get_x_y')
+        return [0, 0]
+
     logging.debug(f'{inspect.currentframe().f_code.co_name} 1')
     sup_vectors = pd.DataFrame(list(zip(x, y)), columns=['x', 'y'])
     logging.debug(f'{inspect.currentframe().f_code.co_name} 2')
