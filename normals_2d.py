@@ -147,8 +147,10 @@ def function_for_pool(layer, left_regions, right_regions, layer_index, color_cod
         return [0, 0]
 
     x, y = utility.get_x_y(arr[0])
-    if not x or not y:
+    if not x:
         logging.debug(f'{inspect.currentframe().f_code.co_name} error in get_x_y')
+        logging.debug(y[0])
+        logging.debug(y[1])
         return [0, 0]
 
     logging.debug(f'{inspect.currentframe().f_code.co_name} 1')

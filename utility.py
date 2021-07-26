@@ -1,6 +1,7 @@
 import math
 import os
 import string
+import traceback
 
 import numpy as np
 import SimpleITK as sitk
@@ -13,7 +14,7 @@ def get_subdirs(chunk):
     return [f.name for f in os.scandir('/images/Shape/Medical/Knees/OAI/Manual_Segmentations/') if f.is_dir() and f.name in chunk]
 
 
-def get_x_y(array: list) -> [list, list]:
+def get_x_y(array: list):
     """
     Extracts x and y values from an array [[x1, y1], [x2, y2], ...] sorted by x.
 
@@ -28,8 +29,8 @@ def get_x_y(array: list) -> [list, list]:
         tmp = np.sort(tmp)
         x = [item[0] for item in tmp]
         y = [item[1] for item in tmp]
-    except TypeError:
-        return None, None
+    except TypeError as e:
+        return None, [tmp, traceback.format_exc()]
 
     return x, y
 
