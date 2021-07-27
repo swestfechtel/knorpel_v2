@@ -35,5 +35,5 @@ if __name__ == '__main__':
                         level=logging.DEBUG, filemode='w')
     base_dir = '/images/Shape/Medical/Knees/OAI/FullNiftiTest'
     result_set = set()
-    scan_directory(result_set)
+    scan_directory(base_dir, result_set)
     print(result_set)
