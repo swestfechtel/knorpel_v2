@@ -9,7 +9,7 @@ def scan_directory(directory, res_set):
     for subdir in os.scandir(directory):
         if subdir.is_dir():
             scan_directory(subdir, res_set)
-        elif n := subdir.name == 'metadata.json':
+        elif (n := subdir.name) == 'metadata.json':
             try:
                 f = open(n)
                 j = json.load(f)
