@@ -29,7 +29,7 @@ def scan_directory(directory, res_set):
                 logging.debug(n)
                 logging.debug(traceback.format_exc())
                 continue
-            except AssertionError:
+            except (AssertionError, KeyError):
                 continue
 
         else:
