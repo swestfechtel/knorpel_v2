@@ -1,11 +1,13 @@
 import os
 import json
 import logging
+import traceback
 
 from pathlib import Path
 
 
 def scan_directory(directory, res_set):
+    logging.debug(f'Scanning {directory}.')
     for subdir in os.scandir(directory):
         if subdir.is_dir():
             scan_directory(subdir, res_set)
@@ -24,6 +26,8 @@ def scan_directory(directory, res_set):
                 logging.debug(f'Added {p} to result set.')
 
             except (FileNotFoundError, json.JSONDecodeError):
+                logging.debug(n)
+                logging.debug(traceback.format_exc())
                 continue
 
         else:
