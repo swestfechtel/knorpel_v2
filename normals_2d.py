@@ -3,13 +3,12 @@ import math
 import sys
 import traceback
 import utility
-import os
+import meshing
 import inspect
 
 import numpy as np
 import pandas as pd
 
-from sklearn.cluster import KMeans
 from multiprocessing import Pool, cpu_count
 from functools import partial
 
@@ -23,16 +22,14 @@ def average_femoral_thickness_per_region(np_image, sitk_image):
 
     femoral_cartilage = utility.build_3d_cartilage_array(np_image, 3)
     vectors = [list(elem) for elem in femoral_cartilage]
-    cluster = KMeans(n_clusters=1, random_state=0).fit(vectors)
-    split_vector = cluster.cluster_centers_[0]
-    femoral_split_vector = split_vector
-    left_plate, right_plate = utility.split_into_plates(vectors, split_vector)
 
-    first_split, second_split = utility.get_femoral_thirds(left_plate)
-    left_femoral_regions = [first_split, second_split]
+    left_portion, middle_portion, right_portion = meshing.split_femoral_volume(vectors)
+    left_outer, left_inner = meshing.build_portion_delaunay(left_portion)
+    middle_outer, middle_inner = meshing.build_portion_delaunay(middle_portion)
+    right_outer, right_inner = meshing.build_portion_delaunay(right_portion)
+    outer_cloud = meshing.combine_to_cloud(left_outer, middle_outer, right_outer)
 
-    first_split, second_split = utility.get_femoral_thirds(right_plate)
-    right_femoral_regions = [first_split, second_split]
+    left_femoral_regions, right_femoral_regions, femoral_split_vector = utility.femoral_landmarks(outer_cloud.to_numpy())
 
     with Pool() as pool:
         layers = pool.map(partial(utility.isolate_cartilage, color_code=3), np_image)
@@ -71,23 +68,9 @@ def average_tibial_thickness_per_region(np_image, sitk_image):
 
     tibial_cartilage = utility.build_3d_cartilage_array(np_image, 4)
     vectors = [list(elem) for elem in tibial_cartilage]
-    cluster = KMeans(n_clusters=1, random_state=0).fit(vectors)
-    split_vector = cluster.cluster_centers_[0]
-    tibial_split_vector = split_vector
-    left_plate, right_plate = utility.split_into_plates(vectors, split_vector)
 
-    left_plate_cog = KMeans(n_clusters=1, random_state=0).fit(left_plate).cluster_centers_[0]
-    right_plate_cog = KMeans(n_clusters=1, random_state=0).fit(right_plate).cluster_centers_[0]
-
-    left_plate_radius, left_plate_circle = utility.calculate_ellipse(left_plate, left_plate_cog)
-    right_plate_radius, right_plate_circle = utility.calculate_ellipse(right_plate, right_plate_cog)
-
-    # left plate first
-    a, b, c, d = utility.get_plate_corners(plate=left_plate)
-    left_tibial_regions = [a, b, c, d, left_plate_radius, left_plate_cog]
-    # then right plate
-    a, b, c, d = utility.get_plate_corners(plate=right_plate)
-    right_tibial_regions = [a, b, c, d, right_plate_radius, right_plate_cog]
+    lower_mesh, upper_mesh = utility.build_tibial_meshes(vectors)
+    left_tibial_regions, right_tibial_regions, tibial_split_vector = utility.tibial_landmarks(upper_mesh)
 
     with Pool() as pool:
         layers = pool.map(partial(utility.isolate_cartilage, color_code=4), np_image)

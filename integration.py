@@ -2,14 +2,13 @@ import math
 import sys
 import traceback
 import utility
-import os
 import logging
+import meshing
 
 import numpy as np
 import pandas as pd
 
 from multiprocessing import Pool
-from sklearn.cluster import KMeans
 
 
 def fit_function(df, degree):
@@ -33,38 +32,15 @@ def function_for_pool(directory):
     femoral_vectors = [list(elem) for elem in femoral_cartilage]
     tibial_vectors = [list(elem) for elem in tibial_cartilage]
 
-    cluster = KMeans(n_clusters=1, random_state=0).fit(femoral_vectors)
-    split_vector = cluster.cluster_centers_[0]
-    femoral_split_vector = split_vector
-    left_plate, right_plate = utility.split_into_plates(femoral_vectors, split_vector)
+    left_portion, middle_portion, right_portion = meshing.split_femoral_volume(femoral_vectors)
+    left_outer, left_inner = meshing.build_portion_delaunay(left_portion)
+    middle_outer, middle_inner = meshing.build_portion_delaunay(middle_portion)
+    right_outer, right_inner = meshing.build_portion_delaunay(right_portion)
+    outer_cloud = meshing.combine_to_cloud(left_outer, middle_outer, right_outer)
+    left_femoral_regions, right_femoral_regions, femoral_split_vector = utility.femoral_landmarks(outer_cloud.to_numpy())
 
-    first_split, second_split = utility.get_femoral_thirds(left_plate)
-    left_femoral_regions = [first_split, second_split]
-
-    first_split, second_split = utility.get_femoral_thirds(right_plate)
-    right_femoral_regions = [first_split, second_split]
-
-    cluster = KMeans(n_clusters=1, random_state=0).fit(tibial_vectors)
-    split_vector = cluster.cluster_centers_[0]
-    tibial_split_vector = split_vector
-    left_plate, right_plate = utility.split_into_plates(tibial_vectors, split_vector)
-
-    left_plate_cog = KMeans(n_clusters=1, random_state=0).fit(left_plate).cluster_centers_[0]
-    right_plate_cog = KMeans(n_clusters=1, random_state=0).fit(right_plate).cluster_centers_[0]
-
-    left_plate_radius, left_plate_circle = utility.calculate_ellipse(left_plate, left_plate_cog)
-    right_plate_radius, right_plate_circle = utility.calculate_ellipse(right_plate, right_plate_cog)
-
-    # left plate first
-    a, b, c, d = utility.get_plate_corners(plate=left_plate)
-    left_tibial_regions = [a, b, c, d, left_plate_radius, left_plate_cog]
-    # then right plate
-    a, b, c, d = utility.get_plate_corners(plate=right_plate)
-    right_tibial_regions = [a, b, c, d, right_plate_radius, right_plate_cog]
-
-    total_femoral_thickness = 0
-    total_tibial_thickness = 0
-    num_it = 0
+    _, upper_tibial_mesh = utility.build_tibial_meshes(tibial_vectors)
+    left_tibial_regions, right_tibial_regions, tibial_split_vector = utility.tibial_landmarks(upper_tibial_mesh.points)
 
     femoral_thickness = dict()
     femoral_thickness['ecLF'] = np.zeros(1)
