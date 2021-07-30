@@ -43,7 +43,7 @@ if __name__ == '__main__':
     base_dir = Path(base_dir)
     result_set = set()
     scan_directory(base_dir, result_set)
-    with open('/work/scratch/westfechtel/pickles/index/index') as of:
+    with open('/work/scratch/westfechtel/pickles/index/index.pickle', 'wb') as of:
         pickle.dump(result_set, of)
 
     for path in result_set:
