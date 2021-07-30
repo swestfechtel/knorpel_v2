@@ -70,7 +70,7 @@ def average_tibial_thickness_per_region(np_image, sitk_image):
     vectors = [list(elem) for elem in tibial_cartilage]
 
     lower_mesh, upper_mesh = utility.build_tibial_meshes(vectors)
-    left_tibial_regions, right_tibial_regions, tibial_split_vector = utility.tibial_landmarks(upper_mesh)
+    left_tibial_regions, right_tibial_regions, tibial_split_vector = utility.tibial_landmarks(upper_mesh.points)
 
     with Pool() as pool:
         layers = pool.map(partial(utility.isolate_cartilage, color_code=4), np_image)
@@ -129,7 +129,7 @@ def function_for_pool(layer, left_regions, right_regions, layer_index, color_cod
 
     sup_vectors = pd.DataFrame(list(zip(x, y)), columns=['x', 'y'])
     try:
-        z = np.polyfit(x, y, 2)
+        z = np.polyfit(x, y, 4)
         fun = np.poly1d(z)
     except np.linalg.LinAlgError as e:
         logging.debug(f'{inspect.currentframe().f_code.co_name} {traceback.format_exc()}')
