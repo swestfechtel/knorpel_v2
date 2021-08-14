@@ -21,8 +21,8 @@ def scan_directory(directory: Path, res_set: set):
                 assert j['Modality'] == 'MR'
                 # assert j['ProtocolName'] == 'SAG 3D DESS WE'
                 # assert j['SeriesDescription'] == 'SAG3D'
-
-                res_set.add(p := subdir.parent)
+                f = open(p := subdir.parent + '/image.nii.gz')
+                res_set.add(p)
                 logging.debug(f'Added {p} to result set.')
 
             except (FileNotFoundError, json.JSONDecodeError):
