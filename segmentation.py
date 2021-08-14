@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     try:
         assert len(sys.argv) == 2
-        chunk = np.load(f'/work/scratch/westfechtel/segmentation_chunks/{sys.argv[1]}.npy')
+        chunk = np.load(f'/work/scratch/westfechtel/segmentation_chunks/{sys.argv[1]}.npy', allow_pickle=True)
 
         filehandler = logging.FileHandler(f'/work/scratch/westfechtel/pylogs/segmentation/{sys.argv[1]}.log', mode='w')
         filehandler.setLevel(logging.DEBUG)
