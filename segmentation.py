@@ -32,7 +32,8 @@ if __name__ == '__main__':
         inputs = inputs[:-1]
         outputs = outputs[:-1]
 
-        os.system(f'docker run -u $(id -u ${{USER}}):$(id -g ${{USER}}) -v /:/workdir/images --gpus all justusschock/shape_fitting_miccai_pred --inputs {inputs} --outputs {outputs}')
+        stream = os.popen(f'docker run -u $(id -u ${{USER}}):$(id -g ${{USER}}) -v /:/workdir/images --gpus all justusschock/shape_fitting_miccai_pred --inputs {inputs} --outputs {outputs}')
+        logging.debug(stream.read())
     except Exception as e:
         logging.debug(traceback.format_exc())
         logging.debug(sys.argv)
