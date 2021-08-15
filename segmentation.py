@@ -26,14 +26,22 @@ if __name__ == '__main__':
         inputs = str()
         outputs = str()
         for i, path in enumerate(chunk):
-            inputs += '/workdir/images' + str(path) + '/image.nii.gz,'
-            outputs += f'/workdir/images/work/scratch/westfechtel/segmentations/{path.stem}.nii.gz,'
+            # inputs += '/workdir/images' + str(path) + '/image.nii.gz,'
+            # outputs += f'/workdir/images/work/scratch/westfechtel/segmentations/{path.stem}.nii.gz,'
+            inputs = '/workdir/images' + str(path) + '/image.nii.gz'
+            outputs = f'/workdir/images/work/scratch/westfechtel/segmentations/{path.stem}.nii.gz'
+            try:
+                stream = os.popen(
+                    f'docker run --rm -u $(id -u ${{USER}}):$(id -g ${{USER}}) -v /:/workdir/images --gpus all justusschock/shape_fitting_miccai_pred --inputs {inputs} --outputs {outputs}')
+                logging.debug(stream.read())
+            except Exception as e:
+                logging.debug(traceback.format_exc())
+                continue
 
-        inputs = inputs[:-1]
-        outputs = outputs[:-1]
+        # inputs = inputs[:-1]
+        # outputs = outputs[:-1]
 
-        stream = os.popen(f'docker run -u $(id -u ${{USER}}):$(id -g ${{USER}}) -v /:/workdir/images --gpus all justusschock/shape_fitting_miccai_pred --inputs {inputs} --outputs {outputs}')
-        logging.debug(stream.read())
+
     except Exception as e:
         logging.debug(traceback.format_exc())
         logging.debug(sys.argv)
