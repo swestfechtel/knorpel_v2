@@ -9,11 +9,17 @@ import numpy as np
 import SimpleITK as sitk
 import pyvista as pv
 import pandas as pd
+import nibabel as nb
+
 from sklearn.cluster import KMeans
 
 
+"""
 def get_subdirs(chunk):
     return [f.name for f in os.scandir('/images/Shape/Medical/Knees/OAI/Manual_Segmentations/') if f.is_dir() and f.name in chunk]
+"""
+def get_subdirs(chunk):
+    return np.load(chunk)
 
 
 def get_x_y(array: list):
@@ -277,14 +283,14 @@ def classify_femoral_point(vector, left_regions, right_regions, split_vector) ->
 
 def read_image(path: string) -> [sitk.Image, np.array]:
     """
-    Reads a mhd file into a numpy array
+    Reads a mhd/nifti file into a numpy array
 
     :param path: path to the file
-    :return: numpy array representation of the mhd file
+    :return: numpy array representation of the mhd/nifti file
     """
     sitk_image = sitk.ReadImage(path)
-
-    return sitk_image, sitk.GetArrayFromImage(sitk_image)
+    arr = sitk.GetArrayFromImage(sitk_image)
+    return sitk_image, arr
 
 
 def build_3d_cartilage_array(image, color_code=3) -> np.array:
