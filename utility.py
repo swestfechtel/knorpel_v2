@@ -18,8 +18,10 @@ from sklearn.cluster import KMeans
 def get_subdirs(chunk):
     return [f.name for f in os.scandir('/images/Shape/Medical/Knees/OAI/Manual_Segmentations/') if f.is_dir() and f.name in chunk]
 """
+
+
 def get_subdirs(chunk):
-    return np.load(chunk)
+    return np.load(f'{chunk}.npy')
 
 
 def get_x_y(array: list):
