@@ -21,7 +21,7 @@ def get_subdirs(chunk):
 
 
 def get_subdirs(chunk):
-    return np.load(f'/work/scratch/westfechtel/segmentation_chunks/{chunk}.npy')
+    return np.load(f'/work/scratch/westfechtel/segmented_chunks/{chunk}.npy', allow_pickle=True)
 
 
 def get_x_y(array: list):
