@@ -380,8 +380,9 @@ def derivative(x0, fun):
 
 
 def helper(directory):
-
-    sitk_image, np_image = utility.read_image(f'/images/Shape/Medical/Knees/OAI/Manual_Segmentations/{directory}/{directory}_segm.mhd')
+    # segmentation_directory = f'/images/Shape/Medical/Knees/OAI/Manual_Segmentations/{directory}/{directory}_segm.mhd'
+    segmentation_directory = f'/work/scratch/westfechtel/segmentations/{directory}'
+    sitk_image, np_image = utility.read_image(segmentation_directory)
     tib_res = average_tibial_thickness_per_region(np_image, sitk_image)
     fem_res = average_femoral_thickness_per_region(np_image, sitk_image)
 
@@ -420,7 +421,8 @@ def main():
 
     try:
         assert len(sys.argv) == 2
-        chunk = np.load(f'/work/scratch/westfechtel/chunks/{sys.argv[1]}.npy')
+        # chunk = np.load(f'/work/scratch/westfechtel/chunks/{sys.argv[1]}.npy')
+        chunk = sys.argv[1]
 
         filehandler = logging.FileHandler(f'/work/scratch/westfechtel/pylogs/normals/{sys.argv[1]}.log', mode='w')
         filehandler.setLevel(logging.DEBUG)
@@ -429,9 +431,9 @@ def main():
             root.removeHandler(handler)
 
         root.addHandler(filehandler)
-        logging.debug(f'Using chunk {sys.argv[1]} with length {len(chunk)}.')
-
         dirs = utility.get_subdirs(chunk)
+        logging.debug(f'Using chunk {sys.argv[1]} with length {len(dirs)}.')
+
         res = np.empty(len(dirs), dtype='object')
         for i, directory in enumerate(dirs):
             try:

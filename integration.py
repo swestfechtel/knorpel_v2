@@ -147,7 +147,8 @@ def main():
     logging.debug('Entered main')
     try:
         assert len(sys.argv) == 2
-        chunk = np.load(f'/work/scratch/westfechtel/chunks/{sys.argv[1]}.npy')
+        # chunk = np.load(f'/work/scratch/westfechtel/chunks/{sys.argv[1]}.npy')
+        chunk = sys.argv[1]
 
         filehandler = logging.FileHandler(f'/work/scratch/westfechtel/pylogs/integration/{sys.argv[1]}.log', mode='w')
         filehandler.setLevel(logging.DEBUG)
@@ -156,10 +157,11 @@ def main():
             root.removeHandler(handler)
 
         root.addHandler(filehandler)
-        logging.debug(f'Using chunk {sys.argv[1]} with length {len(chunk)}.')
+        files = utility.get_subdirs(chunk)
+        logging.debug(f'Using chunk {sys.argv[1]} with length {len(files)}.')
 
         with Pool() as pool:
-            res = pool.map(func=function_for_pool, iterable=utility.get_subdirs(chunk))
+            res = pool.map(func=function_for_pool, iterable=files)
 
         df = pd.DataFrame.from_dict(res)
         df.index = df['dir']

@@ -123,7 +123,12 @@ def function_for_pool(directory):
     femoral_vectors = [list(element) for element in femoral_cartilage]
 
     # tibial thickness
-    lower_mesh, upper_mesh = utility.build_tibial_meshes(tibial_vectors)
+    try:
+        lower_mesh, upper_mesh = utility.build_tibial_meshes(tibial_vectors)
+    except Exception:
+        logging.debug(traceback.format_exc())
+        return {**{'dir': directory}, **{}, **{}}
+
 
     # determine landmarks for tibial plates for subregion classification
     left_tibial_landmarks, right_tibial_landmarks, split_vector = utility.tibial_landmarks(lower_mesh.points)
@@ -163,11 +168,15 @@ def function_for_pool(directory):
         femoral_thickness[key] = np.nanmean(value)
 
     # femoral thickness
-    left_portion, middle_portion, right_portion = split_femoral_volume(femoral_vectors)
-    left_outer, left_inner = build_portion_delaunay(left_portion)
-    middle_outer, middle_inner = build_portion_delaunay(middle_portion)
-    right_outer, right_inner = build_portion_delaunay(right_portion)
-    outer_cloud = combine_to_cloud(left_outer, middle_outer, right_outer)
+    try:
+        left_portion, middle_portion, right_portion = split_femoral_volume(femoral_vectors)
+        left_outer, left_inner = build_portion_delaunay(left_portion)
+        middle_outer, middle_inner = build_portion_delaunay(middle_portion)
+        right_outer, right_inner = build_portion_delaunay(right_portion)
+        outer_cloud = combine_to_cloud(left_outer, middle_outer, right_outer)
+    except Exception:
+        logging.debug(traceback.format_exc())
+        return {**{'dir': directory}, **{}, **{}}
 
     left_femoral_landmarks, right_femoral_landmarks, split_vector = utility.femoral_landmarks(outer_cloud.to_numpy())
 
@@ -242,7 +251,7 @@ def main():
         df = pd.DataFrame.from_dict(res)
         df.index = df['dir']
         df = df.drop('dir', axis=1)
-        df.to_pickle(f'/work/scratch/westfechtel/pickles/{sys.argv[1]}')
+        df.to_pickle(f'/work/scratch/westfechtel/pickles/mesh/{sys.argv[1]}')
     except Exception as e:
         logging.debug(traceback.format_exc())
         logging.debug(sys.argv)
