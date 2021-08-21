@@ -95,8 +95,12 @@ def fun(directory):
     segmentation_directory = f'/work/scratch/westfechtel/segmentations/{directory}'
     sitk_image, np_image = utility.read_image(segmentation_directory)
 
-    tibial_cartilage = utility.build_3d_cartilage_array(np_image, 4)
-    femoral_cartilage = utility.build_3d_cartilage_array(np_image, 3)
+    try:
+        tibial_cartilage = utility.build_3d_cartilage_array(np_image, 4)
+        femoral_cartilage = utility.build_3d_cartilage_array(np_image, 3)
+    except Exception:
+        logging.debug(traceback.format_exc())
+        return {**{'dir': directory}, **{}, **{}}
 
     femoral_vectors = [list(element) for element in femoral_cartilage]
     tibial_vectors = [list(element) for element in tibial_cartilage]

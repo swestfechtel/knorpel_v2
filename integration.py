@@ -27,8 +27,13 @@ def fit_function(df, degree):
 
 def function_for_pool(directory):
     sitk_image, np_image = utility.read_image(f'/images/Shape/Medical/Knees/OAI/Manual_Segmentations/{directory}/{directory}_segm.mhd')
-    femoral_cartilage = utility.build_3d_cartilage_array(np_image, 3)
-    tibial_cartilage = utility.build_3d_cartilage_array(np_image, 4)
+    try:
+        femoral_cartilage = utility.build_3d_cartilage_array(np_image, 3)
+        tibial_cartilage = utility.build_3d_cartilage_array(np_image, 4)
+    except Exception:
+        logging.debug(traceback.format_exc())
+        return {**{'dir': directory}, **{}, **{}}
+
     femoral_vectors = [list(elem) for elem in femoral_cartilage]
     tibial_vectors = [list(elem) for elem in tibial_cartilage]
 

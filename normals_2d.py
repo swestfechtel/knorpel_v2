@@ -383,8 +383,12 @@ def helper(directory):
     # segmentation_directory = f'/images/Shape/Medical/Knees/OAI/Manual_Segmentations/{directory}/{directory}_segm.mhd'
     segmentation_directory = f'/work/scratch/westfechtel/segmentations/{directory}'
     sitk_image, np_image = utility.read_image(segmentation_directory)
-    tib_res = average_tibial_thickness_per_region(np_image, sitk_image)
-    fem_res = average_femoral_thickness_per_region(np_image, sitk_image)
+    try:
+        tib_res = average_tibial_thickness_per_region(np_image, sitk_image)
+        fem_res = average_femoral_thickness_per_region(np_image, sitk_image)
+    except Exception:
+        logging.debug(traceback.format_exc())
+        return {**{'dir': directory}, **{}, **{}}
 
     keys = set(tib_res[0][0].keys())
     tib_d = dict()
