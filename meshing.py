@@ -121,7 +121,7 @@ def function_for_pool(directory):
         tibial_cartilage = utility.build_3d_cartilage_array(np_image, 4)
         femoral_cartilage = utility.build_3d_cartilage_array(np_image, 3)
     except Exception:
-        logging.debug(traceback.format_exc())
+        logging.error(traceback.format_exc())
         return {**{'dir': directory}, **{}, **{}}
 
     tibial_vectors = [list(element) for element in tibial_cartilage]
@@ -131,7 +131,7 @@ def function_for_pool(directory):
     try:
         lower_mesh, upper_mesh = utility.build_tibial_meshes(tibial_vectors)
     except Exception:
-        logging.debug(traceback.format_exc())
+        logging.error(traceback.format_exc())
         return {**{'dir': directory}, **{}, **{}}
 
 
@@ -180,7 +180,7 @@ def function_for_pool(directory):
         right_outer, right_inner = build_portion_delaunay(right_portion)
         outer_cloud = combine_to_cloud(left_outer, middle_outer, right_outer)
     except Exception:
-        logging.debug(traceback.format_exc())
+        logging.error(traceback.format_exc())
         return {**{'dir': directory}, **{}, **{}}
 
     left_femoral_landmarks, right_femoral_landmarks, split_vector = utility.femoral_landmarks(outer_cloud.to_numpy())
@@ -233,7 +233,7 @@ def function_for_pool(directory):
 
 def main():
     logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/mesh/mesh_default.log', encoding='utf-8', level=logging.DEBUG, filemode='w')
-    logging.debug('Entered main.')
+    logging.info('Entered main.')
 
     try:
         assert len(sys.argv) == 2
@@ -247,8 +247,9 @@ def main():
             root.removeHandler(handler)
 
         root.addHandler(filehandler)
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
         files = utility.get_subdirs(chunk)
-        logging.debug(f'Using chunk {sys.argv[1]} with length {len(files)}.')
+        logging.info(f'Using chunk {sys.argv[1]} with length {len(files)}.')
 
         with Pool() as pool:
             res = pool.map(func=function_for_pool, iterable=files)
@@ -258,8 +259,8 @@ def main():
         df = df.drop('dir', axis=1)
         df.to_pickle(f'/work/scratch/westfechtel/pickles/mesh/{sys.argv[1]}')
     except Exception as e:
-        logging.debug(traceback.format_exc())
-        logging.debug(sys.argv)
+        logging.error(traceback.format_exc())
+        logging.error(sys.argv)
 
 
 if __name__ == '__main__':

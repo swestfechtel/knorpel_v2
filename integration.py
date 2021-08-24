@@ -33,7 +33,7 @@ def function_for_pool(directory):
         femoral_cartilage = utility.build_3d_cartilage_array(np_image, 3)
         tibial_cartilage = utility.build_3d_cartilage_array(np_image, 4)
     except Exception:
-        logging.debug(traceback.format_exc())
+        logging.error(traceback.format_exc())
         return {**{'dir': directory}, **{}, **{}}
 
     femoral_vectors = [list(elem) for elem in femoral_cartilage]
@@ -151,7 +151,7 @@ def function_for_pool(directory):
 
 def main():
     logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/integration/integration_default.log', encoding='utf-8', level=logging.DEBUG, filemode='w')
-    logging.debug('Entered main')
+    logging.info('Entered main')
     try:
         assert len(sys.argv) == 2
         # chunk = np.load(f'/work/scratch/westfechtel/chunks/{sys.argv[1]}.npy')
@@ -164,8 +164,9 @@ def main():
             root.removeHandler(handler)
 
         root.addHandler(filehandler)
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
         files = utility.get_subdirs(chunk)
-        logging.debug(f'Using chunk {sys.argv[1]} with length {len(files)}.')
+        logging.info(f'Using chunk {sys.argv[1]} with length {len(files)}.')
 
         with Pool() as pool:
             res = pool.map(func=function_for_pool, iterable=files)
@@ -176,8 +177,8 @@ def main():
         # df.to_excel('integration.xlsx')
         df.to_pickle(f'/work/scratch/westfechtel/pickles/twodim_integration/{sys.argv[1]}')
     except Exception as e:
-        logging.debug(traceback.format_exc())
-        logging.debug(sys.argv)
+        logging.error(traceback.format_exc())
+        logging.error(sys.argv)
 
 
 if __name__ == '__main__':
