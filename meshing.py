@@ -122,7 +122,9 @@ def function_for_pool(directory):
         femoral_cartilage = utility.build_3d_cartilage_array(np_image, 3)
     except Exception:
         logging.error(traceback.format_exc())
-        return {**{'dir': directory}, **{}, **{}}
+        logging.warning(f'Got error for file {directory} while trying to build 3d arrays. Return empty dict.')
+        # return {**{'dir': directory}, **{}, **{}}
+        return dict()
 
     tibial_vectors = [list(element) for element in tibial_cartilage]
     femoral_vectors = [list(element) for element in femoral_cartilage]
@@ -132,7 +134,9 @@ def function_for_pool(directory):
         lower_mesh, upper_mesh = utility.build_tibial_meshes(tibial_vectors)
     except Exception:
         logging.error(traceback.format_exc())
-        return {**{'dir': directory}, **{}, **{}}
+        logging.warning(f'Got delaunay error for file {directory} while trying to build tibial meshes. Return empty dict.')
+        # return {**{'dir': directory}, **{}, **{}}
+        return dict()
 
 
     # determine landmarks for tibial plates for subregion classification
@@ -140,37 +144,37 @@ def function_for_pool(directory):
 
     # calculate average thickness per region by ray tracing normal vectors from lower to upper surface
     lower_normals = lower_mesh.compute_normals(cell_normals=False)
-    femoral_thickness = dict()
-    femoral_thickness['cLT'] = np.zeros(lower_mesh.n_points)
-    femoral_thickness['aLT'] = np.zeros(lower_mesh.n_points)
-    femoral_thickness['eLT'] = np.zeros(lower_mesh.n_points)
-    femoral_thickness['pLT'] = np.zeros(lower_mesh.n_points)
-    femoral_thickness['iLT'] = np.zeros(lower_mesh.n_points)
-    femoral_thickness['cMT'] = np.zeros(lower_mesh.n_points)
-    femoral_thickness['aMT'] = np.zeros(lower_mesh.n_points)
-    femoral_thickness['eMT'] = np.zeros(lower_mesh.n_points)
-    femoral_thickness['pMT'] = np.zeros(lower_mesh.n_points)
-    femoral_thickness['iMT'] = np.zeros(lower_mesh.n_points)
+    tibial_thickness = dict()
+    tibial_thickness['cLT'] = np.zeros(lower_mesh.n_points)
+    tibial_thickness['aLT'] = np.zeros(lower_mesh.n_points)
+    tibial_thickness['eLT'] = np.zeros(lower_mesh.n_points)
+    tibial_thickness['pLT'] = np.zeros(lower_mesh.n_points)
+    tibial_thickness['iLT'] = np.zeros(lower_mesh.n_points)
+    tibial_thickness['cMT'] = np.zeros(lower_mesh.n_points)
+    tibial_thickness['aMT'] = np.zeros(lower_mesh.n_points)
+    tibial_thickness['eMT'] = np.zeros(lower_mesh.n_points)
+    tibial_thickness['pMT'] = np.zeros(lower_mesh.n_points)
+    tibial_thickness['iMT'] = np.zeros(lower_mesh.n_points)
 
     lower_normals['distances'] = np.zeros(lower_mesh.n_points)
     lower_normals, femoral_thickness = utility.calculate_distance(lower_normals, lower_mesh, upper_mesh, sitk_image,
                                                           left_tibial_landmarks, right_tibial_landmarks,
-                                                          split_vector, femoral_thickness, femur=False)
+                                                          split_vector, tibial_thickness, femur=False)
 
     # total average thickness
     mask = lower_normals['distances'] == 0
     lower_normals['distances'][mask] = np.nan
     total_avg_thickness = np.nanmean(lower_normals['distances'])
 
-    keys = set(femoral_thickness.keys())
+    keys = set(tibial_thickness.keys())
     for key in keys:
-        value = femoral_thickness[key]
+        value = tibial_thickness[key]
         mask = value == 0
         value[mask] = np.nan
-        femoral_thickness[key + '.aSD'] = np.nanstd(value)
-        femoral_thickness[key + '.aMav'] = np.nanmean(-np.sort(-value)[:math.ceil(len(value) * 0.01)])
-        femoral_thickness[key + '.aMiv'] = np.nanmean(np.sort(value)[:math.ceil(len(value) * 0.01)])
-        femoral_thickness[key] = np.nanmean(value)
+        tibial_thickness[key + '.aSD'] = np.nanstd(value)
+        tibial_thickness[key + '.aMav'] = np.nanmean(-np.sort(-value)[:math.ceil(len(value) * 0.01)])
+        tibial_thickness[key + '.aMiv'] = np.nanmean(np.sort(value)[:math.ceil(len(value) * 0.01)])
+        tibial_thickness[key] = np.nanmean(value)
 
     # femoral thickness
     try:
@@ -181,7 +185,9 @@ def function_for_pool(directory):
         outer_cloud = combine_to_cloud(left_outer, middle_outer, right_outer)
     except Exception:
         logging.error(traceback.format_exc())
-        return {**{'dir': directory}, **{}, **{}}
+        logging.warning(f'Got delaunay error for file {directory} while trying to split femoral volume. Return empty dict.')
+        # return {**{'dir': directory}, **{}, **{}}
+        return dict()
 
     left_femoral_landmarks, right_femoral_landmarks, split_vector = utility.femoral_landmarks(outer_cloud.to_numpy())
 
@@ -215,18 +221,18 @@ def function_for_pool(directory):
                                             left_femoral_landmarks, right_femoral_landmarks,
                                             split_vector, right_thickness, femur=True)
 
-    tibial_thickness = {key: np.hstack((left_thickness[key], middle_thickness[key], right_thickness[key])) for key in
+    femoral_thickness = {key: np.hstack((left_thickness[key], middle_thickness[key], right_thickness[key])) for key in
                          left_thickness.keys()}
 
-    keys = set(tibial_thickness.keys())
+    keys = set(femoral_thickness.keys())
     for key in keys:
-        value = tibial_thickness[key]
+        value = femoral_thickness[key]
         mask = value == 0
         value[mask] = np.nan
-        tibial_thickness[key + '.aSD'] = np.nanstd(value)
-        tibial_thickness[key + '.aMav'] = np.nanmean(-np.sort(-value)[:math.ceil(len(value) * 0.01)])
-        tibial_thickness[key + '.aMiv'] = np.nanmean(np.sort(value)[:math.ceil(len(value) * 0.01)])
-        tibial_thickness[key] = np.nanmean(value)
+        femoral_thickness[key + '.aSD'] = np.nanstd(value)
+        femoral_thickness[key + '.aMav'] = np.nanmean(-np.sort(-value)[:math.ceil(len(value) * 0.01)])
+        femoral_thickness[key + '.aMiv'] = np.nanmean(np.sort(value)[:math.ceil(len(value) * 0.01)])
+        femoral_thickness[key] = np.nanmean(value)
 
     return {**{'dir': directory}, **femoral_thickness, **tibial_thickness}
 
@@ -249,6 +255,10 @@ def main():
 
         root.addHandler(filehandler)
         files = utility.get_subdirs(chunk)
+
+        # debug !!
+        files = files[0:100]
+
         logging.info(f'Using chunk {sys.argv[1]} with length {len(files)}.')
 
         with Pool() as pool:
