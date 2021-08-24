@@ -242,12 +242,12 @@ def main():
 
         filehandler = logging.FileHandler(f'/work/scratch/westfechtel/pylogs/mesh/{sys.argv[1]}.log', mode='w')
         filehandler.setLevel(logging.DEBUG)
+        filehandler.setFormatter(logging.Formatter('%(levelname)s:%(message)s'))
         root = logging.getLogger()
         for handler in root.handlers[:]:
             root.removeHandler(handler)
 
         root.addHandler(filehandler)
-        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
         files = utility.get_subdirs(chunk)
         logging.info(f'Using chunk {sys.argv[1]} with length {len(files)}.')
 
