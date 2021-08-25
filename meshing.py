@@ -143,7 +143,14 @@ def function_for_pool(directory):
     left_tibial_landmarks, right_tibial_landmarks, split_vector = utility.tibial_landmarks(lower_mesh.points)
 
     # calculate average thickness per region by ray tracing normal vectors from lower to upper surface
-    lower_normals = lower_mesh.compute_normals(cell_normals=False)
+    try:
+        lower_normals = lower_mesh.compute_normals(cell_normals=False)
+    except Exception:
+        logging.error(traceback.format_exc())
+        logging.warning(f'Got error for file {directory} while trying to compute normals. Return empty dict.')
+        # return {**{'dir': directory}, **{}, **{}}
+        return dict()
+
     tibial_thickness = dict()
     tibial_thickness['cLT'] = np.zeros(lower_mesh.n_points)
     tibial_thickness['aLT'] = np.zeros(lower_mesh.n_points)
@@ -157,9 +164,15 @@ def function_for_pool(directory):
     tibial_thickness['iMT'] = np.zeros(lower_mesh.n_points)
 
     lower_normals['distances'] = np.zeros(lower_mesh.n_points)
-    lower_normals, femoral_thickness = utility.calculate_distance(lower_normals, lower_mesh, upper_mesh, sitk_image,
+    try:
+        lower_normals, femoral_thickness = utility.calculate_distance(lower_normals, lower_mesh, upper_mesh, sitk_image,
                                                           left_tibial_landmarks, right_tibial_landmarks,
                                                           split_vector, tibial_thickness, femur=False)
+    except Exception:
+        logging.error(traceback.format_exc())
+        logging.warning(f'Got error for file {directory} while trying to calculate distance. Return empty dict.')
+        # return {**{'dir': directory}, **{}, **{}}
+        return dict()
 
     # total average thickness
     mask = lower_normals['distances'] == 0
@@ -191,9 +204,15 @@ def function_for_pool(directory):
 
     left_femoral_landmarks, right_femoral_landmarks, split_vector = utility.femoral_landmarks(outer_cloud.to_numpy())
 
-    left_inner_normals = left_inner.compute_normals(cell_normals=False)
-    middle_inner_normals = middle_inner.compute_normals(cell_normals=False)
-    right_inner_normals = right_inner.compute_normals(cell_normals=False)
+    try:
+        left_inner_normals = left_inner.compute_normals(cell_normals=False)
+        middle_inner_normals = middle_inner.compute_normals(cell_normals=False)
+        right_inner_normals = right_inner.compute_normals(cell_normals=False)
+    except Exception:
+        logging.error(traceback.format_exc())
+        logging.warning(f'Got error for file {directory} while trying to compute normals (2). Return empty dict.')
+        # return {**{'dir': directory}, **{}, **{}}
+        return dict()
 
     left_thickness = dict()
     left_thickness['ecLF'] = np.zeros(left_inner.n_points)
@@ -209,17 +228,23 @@ def function_for_pool(directory):
     right_thickness = left_thickness.copy()
     right_thickness = {key: np.zeros(right_inner.n_points) for key in right_thickness.keys()}
 
-    _, left_thickness = utility.calculate_distance(left_inner_normals, left_inner, left_outer, sitk_image,
-                                           left_femoral_landmarks, right_femoral_landmarks,
-                                           split_vector, left_thickness, femur=True)
+    try:
+        _, left_thickness = utility.calculate_distance(left_inner_normals, left_inner, left_outer, sitk_image,
+                                               left_femoral_landmarks, right_femoral_landmarks,
+                                               split_vector, left_thickness, femur=True)
 
-    _, middle_thickness = utility.calculate_distance(middle_inner_normals, middle_inner, middle_outer, sitk_image,
-                                             left_femoral_landmarks, right_femoral_landmarks,
-                                             split_vector, middle_thickness, femur=True)
+        _, middle_thickness = utility.calculate_distance(middle_inner_normals, middle_inner, middle_outer, sitk_image,
+                                                 left_femoral_landmarks, right_femoral_landmarks,
+                                                 split_vector, middle_thickness, femur=True)
 
-    _, right_thickness = utility.calculate_distance(right_inner_normals, right_inner, right_outer, sitk_image,
-                                            left_femoral_landmarks, right_femoral_landmarks,
-                                            split_vector, right_thickness, femur=True)
+        _, right_thickness = utility.calculate_distance(right_inner_normals, right_inner, right_outer, sitk_image,
+                                                left_femoral_landmarks, right_femoral_landmarks,
+                                                split_vector, right_thickness, femur=True)
+    except Exception:
+        logging.error(traceback.format_exc())
+        logging.warning(f'Got error for file {directory} while trying to calculate distance (2). Return empty dict.')
+        # return {**{'dir': directory}, **{}, **{}}
+        return dict()
 
     femoral_thickness = {key: np.hstack((left_thickness[key], middle_thickness[key], right_thickness[key])) for key in
                          left_thickness.keys()}
@@ -257,7 +282,7 @@ def main():
         files = utility.get_subdirs(chunk)
 
         # debug !!
-        files = files[0:100]
+        files = files[640:-1]
 
         logging.info(f'Using chunk {sys.argv[1]} with length {len(files)}.')
 
