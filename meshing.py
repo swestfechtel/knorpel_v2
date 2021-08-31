@@ -11,6 +11,7 @@ import pyvista as pv
 
 from scipy import stats
 from multiprocessing import Pool
+# from __future__ import division
 
 
 def split_femoral_volume(vectors: list) -> [pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -258,7 +259,8 @@ def function_for_pool(directory):
         femoral_thickness[key + '.aMav'] = np.nanmean(-np.sort(-value)[:math.ceil(len(value) * 0.01)])
         femoral_thickness[key + '.aMiv'] = np.nanmean(np.sort(value)[:math.ceil(len(value) * 0.01)])
         femoral_thickness[key] = np.nanmean(value)
-
+    
+    logging.info(f'File {directory} done.')
     return {**{'dir': directory}, **femoral_thickness, **tibial_thickness}
 
 
@@ -287,7 +289,9 @@ def main():
         logging.info(f'Using chunk {sys.argv[1]} with length {len(files)}.')
 
         with Pool() as pool:
-            res = pool.map(func=function_for_pool, iterable=files)
+            res = pool.map(func=function_for_pool, iterable=files, chunksize=int(len(files)/8))
+            pool.close()
+            pool.terminate()
 
         df = pd.DataFrame.from_dict(res)
         df.index = df['dir']
