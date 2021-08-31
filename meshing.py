@@ -11,6 +11,8 @@ import pyvista as pv
 
 from scipy import stats
 from multiprocessing import Pool
+from pebble import ProcessPool
+from concurrent.futures import TimeoutError
 # from __future__ import division
 
 
@@ -284,16 +286,29 @@ def main():
         files = utility.get_subdirs(chunk)
 
         # debug !!
-        files = files[640:-1]
+        files = files[-100:-1]
 
         logging.info(f'Using chunk {sys.argv[1]} with length {len(files)}.')
 
-        with Pool() as pool:
-            res = pool.map(func=function_for_pool, iterable=files, chunksize=int(len(files)/8))
-            pool.close()
-            pool.terminate()
+        with ProcessPool() as pool:
+            res = pool.map(func=function_for_pool, iterable=files, chunksize=int(len(files)/8), timeout=180)
+            # pool.close()
+            # pool.terminate()
 
-        df = pd.DataFrame.from_dict(res)
+        res_list = list()
+        iterator = res.result()
+        while True:
+            try:
+                tmp = next(iterator)
+                res_list.append(tmp)
+            except TimeoutError:
+                continue
+            except StopIteration:
+                break
+
+
+        # df = pd.DataFrame.from_dict(res)
+        df = pd.DataFrame.from_dict(res_list)
         df.index = df['dir']
         df = df.drop('dir', axis=1)
         df.to_pickle(f'/work/scratch/westfechtel/pickles/mesh/{sys.argv[1]}')
