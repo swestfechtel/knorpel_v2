@@ -12,6 +12,7 @@ import pyvista as pv
 from scipy import stats
 from multiprocessing import Pool
 from pebble import ProcessPool
+from pebble.common import ProcessExpired
 from concurrent.futures import TimeoutError
 # from __future__ import division
 
@@ -286,32 +287,39 @@ def main():
         files = utility.get_subdirs(chunk)
 
         # debug !!
-        files = files[-100:-1]
+        # files = files[-100:-1]
 
         logging.info(f'Using chunk {sys.argv[1]} with length {len(files)}.')
 
+        res_list = list()
         with ProcessPool() as pool:
-            res = pool.map(func=function_for_pool, iterable=files, chunksize=int(len(files)/8), timeout=180)
+            res = pool.map(function_for_pool, files, timeout=180)
+            # res = pool.map(function=function_for_pool, iterables=files, chunksize=int(len(files)/8), timeout=180)
             # pool.close()
             # pool.terminate()
 
-        res_list = list()
-        iterator = res.result()
-        while True:
-            try:
-                tmp = next(iterator)
-                res_list.append(tmp)
-            except TimeoutError:
-                continue
-            except StopIteration:
-                break
+            iterator = res.result()
+            while True:
+                try:
+                    tmp = next(iterator)
+                    res_list.append(tmp)
+                    # logging.info(f'Adding {tmp} to result list.')
+                except TimeoutError:
+                    logging.error('Timeout error.')
+                    continue
+                except StopIteration:
+                    logging.info('End of iterator.')
+                    break
+                except ProcessExpired as exp:
+                    logging.error(exp)
+                    continue
 
+            # df = pd.DataFrame.from_dict(res)
+            df = pd.DataFrame.from_dict(res_list)
+            df.index = df['dir']
+            df = df.drop('dir', axis=1)
+            df.to_pickle(f'/work/scratch/westfechtel/pickles/mesh/{sys.argv[1]}')
 
-        # df = pd.DataFrame.from_dict(res)
-        df = pd.DataFrame.from_dict(res_list)
-        df.index = df['dir']
-        df = df.drop('dir', axis=1)
-        df.to_pickle(f'/work/scratch/westfechtel/pickles/mesh/{sys.argv[1]}')
     except Exception as e:
         logging.error(traceback.format_exc())
         logging.error(sys.argv)
