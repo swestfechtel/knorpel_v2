@@ -14,14 +14,14 @@ import nibabel as nb
 from sklearn.cluster import KMeans
 
 
-"""
 def get_subdirs(chunk):
     return [f.name for f in os.scandir('/images/Shape/Medical/Knees/OAI/Manual_Segmentations/') if f.is_dir() and f.name in chunk]
+
+
 """
-
-
 def get_subdirs(chunk):
     return np.load(f'/work/scratch/westfechtel/segmented_chunks/{chunk}.npy', allow_pickle=True)
+"""
 
 
 def get_x_y(array: list):

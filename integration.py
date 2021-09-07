@@ -26,8 +26,8 @@ def fit_function(df, degree):
 
 
 def function_for_pool(directory):
-    # segmentation_directory = f'/images/Shape/Medical/Knees/OAI/Manual_Segmentations/{directory}/{directory}_segm.mhd'
-    segmentation_directory = f'/work/scratch/westfechtel/segmentations/{directory}'
+    segmentation_directory = f'/images/Shape/Medical/Knees/OAI/Manual_Segmentations/{directory}/{directory}_segm.mhd'
+    # segmentation_directory = f'/work/scratch/westfechtel/segmentations/{directory}'
     sitk_image, np_image = utility.read_image(segmentation_directory)
     try:
         femoral_cartilage = utility.build_3d_cartilage_array(np_image, 3)
@@ -154,8 +154,8 @@ def main():
     logging.info('Entered main')
     try:
         assert len(sys.argv) == 2
-        # chunk = np.load(f'/work/scratch/westfechtel/chunks/{sys.argv[1]}.npy')
-        chunk = sys.argv[1]
+        chunk = np.load(f'/work/scratch/westfechtel/chunks/{sys.argv[1]}.npy')
+        # chunk = sys.argv[1]
 
         filehandler = logging.FileHandler(f'/work/scratch/westfechtel/pylogs/integration/{sys.argv[1]}.log', mode='w')
         filehandler.setLevel(logging.DEBUG)
@@ -175,7 +175,7 @@ def main():
         df.index = df['dir']
         df = df.drop('dir', axis=1)
         # df.to_excel('integration.xlsx')
-        df.to_pickle(f'/work/scratch/westfechtel/pickles/twodim_integration/{sys.argv[1]}')
+        df.to_pickle(f'/work/scratch/westfechtel/manpickles/twodim_integration/{sys.argv[1]}')
     except Exception as e:
         logging.error(traceback.format_exc())
         logging.error(sys.argv)
