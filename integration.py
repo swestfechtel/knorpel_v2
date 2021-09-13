@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from multiprocessing import Pool
+from time import time
 
 
 def fit_function(df, degree):
@@ -168,9 +169,11 @@ def main():
         files = utility.get_subdirs(chunk)
         logging.info(f'Using chunk {sys.argv[1]} with length {len(files)}.')
 
+        t = time()
         with Pool() as pool:
             res = pool.map(func=function_for_pool, iterable=files)
 
+        logging.info(f'Elapsed time: {time() - t}')
         df = pd.DataFrame.from_dict(res)
         df.index = df['dir']
         df = df.drop('dir', axis=1)

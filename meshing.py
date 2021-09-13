@@ -14,6 +14,7 @@ from multiprocessing import Pool
 from pebble import ProcessPool
 from pebble.common import ProcessExpired
 from concurrent.futures import TimeoutError
+from time import time
 # from __future__ import division
 
 
@@ -292,6 +293,7 @@ def main():
         logging.info(f'Using chunk {sys.argv[1]} with length {len(files)}.')
 
         res_list = list()
+        t = time()
         with ProcessPool() as pool:
             res = pool.map(function_for_pool, files, timeout=180)
             # res = pool.map(function=function_for_pool, iterables=files, chunksize=int(len(files)/8), timeout=180)
@@ -314,6 +316,7 @@ def main():
                     logging.error(exp)
                     continue
 
+            logging.info(f'Elapsed time: {time() - t}')
             # df = pd.DataFrame.from_dict(res)
             df = pd.DataFrame.from_dict(res_list)
             df.index = df['dir']

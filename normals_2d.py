@@ -11,6 +11,7 @@ import pandas as pd
 
 from multiprocessing import Pool, cpu_count
 from functools import partial
+from time import time
 
 
 def average_femoral_thickness_per_region(np_image, sitk_image):
@@ -439,6 +440,7 @@ def main():
         logging.debug(f'Using chunk {sys.argv[1]} with length {len(dirs)}.')
 
         res = np.empty(len(dirs), dtype='object')
+        t = time()
         for i, directory in enumerate(dirs):
             try:
                 if i % 10 == 0:
@@ -447,6 +449,7 @@ def main():
             except Exception:
                 continue
 
+        logging.info(f'Elapsed time: {time() - t}')
         res = res[res != None]
         res = list(res)
         df = pd.DataFrame.from_dict(res)

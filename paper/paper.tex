@@ -1,20 +1,21 @@
 \documentclass[]{article}
 
 \usepackage{titlesec}
-\usepackage{minted}
+\usepackage[cache=false]{minted}
 \usepackage{listings}
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{amsmath}
 \usepackage[autostyle]{csquotes}
 \usepackage{graphicx}  
+\usepackage{acronym}
 % \usepackage{svg}
 
-\titleformat{\section}[display]
-{\normalfont\bfseries}{}{0pt}{\Large}
+% \titleformat{\section}[display]
+% {\normalfont\bfseries}{}{0pt}{\Large}
 
-\titleformat{\subsection}[display]
-{\normalfont\bfseries}{}{0pt}{\Large}
+% \titleformat{\subsection}[display]
+% {\normalfont\bfseries}{}{0pt}{\Large}
 
 \newcommand{\norm}[1]{\lvert \lvert #1 \rvert \rvert}
 
@@ -27,8 +28,34 @@
 	\maketitle
 	
 	\include{introduction}
+	\appendix
+	\include{subregions}
+	\include{mesh_splitting}
+	\section{Acronyms}
+	\begin{acronym}
+		\acro{ecLF}{Mean thickness of the external cartilage subregion of the central part of the lateral femoral condyle}
+		\acro{ccLF}{Mean thickness of the central cartilage subregion of the central part of the lateral femoral condyle}
+		\acro{icLF}{Mean thickness of the internal cartilage subregion of the central part of the lateral femoral condyle}
+		\acro{icMF}{Mean thickness of the internal cartilage subregion of the central part of the medial femoral condyle}
+		\acro{ccMF}{Mean thickness of the central cartilage subregion of the central part of the medial femoral condyle}
+		\acro{ecMF}{Mean thickness of the external cartilage subregion of the central part of the medial femoral condyle}
+		\acro{cLT}{Mean thickness of the central cartilage subregion of the lateral tibia}
+		\acro{aLT}{Mean thickness of the anterior cartilage subregion of the lateral tibia}
+		\acro{eLT}{Mean thickness of the external cartilage subregion of the lateral tibia}
+		\acro{pLT}{Mean thickness of the posterior cartilage subregion of the lateral tibia}
+		\acro{iLT}{Mean thickness of the internal cartilage subregion of the lateral tibia}
+		\acro{cMT}{Mean thickness of the central cartilage subregion of the medial tibia}
+		\acro{aMT}{Mean thickness of the anterior cartilage subregion of the medial tibia}
+		\acro{eMT}{Mean thickness of the external cartilage subregion of the medial tibia}
+		\acro{pMT}{Mean thickness of the posterior cartilage subregion of the medial tibia}
+		\acro{iMT}{Mean thickness of the internal cartilage subregion of the medial tibia}
+		\acro{x.aSD}{Standard deviation of the thickness of the respective (x) cartilage subregion}
+		\acro{x.aMav}{Mean value of the maximum 1\% measurements of cartilage thickness of the respective (x) cartilage subregion}
+		\acro{x.aMiv}{Mean value of the minimum 1\% measurements of cartilage thickness of the respective (x) cartilage subregion}
+	\end{acronym}
 	
 	\bibliographystyle{alpha}
 	\bibliography{sources}
 	
 \end{document}
+

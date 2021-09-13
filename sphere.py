@@ -11,6 +11,7 @@ import pyvista as pv
 
 from multiprocessing import Pool
 from functools import partial
+from time import time
 
 
 def vector_trace(sphere_points, sphere_normals, df):
@@ -108,7 +109,7 @@ def fun(directory):
     df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
     center = np.array([df.x.min() + (df.x.max() - df.x.min()) / 2,
                        df.y.min() + (df.y.max() - df.y.min()) / 2,
-                       df.y.min() + (df.y.max() - df.y.min()) / 2])
+                       df.y.min() + (df.z.max() - df.z.min()) / 2])
 
     # cloud = pv.PolyData(df.to_numpy())
     df['dist'] = np.zeros(df.shape[0])
@@ -159,7 +160,7 @@ def fun(directory):
     df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
     center = np.array([df.x.min() + (df.x.max() - df.x.min()) / 2,
                        df.y.min() + (df.y.max() - df.y.min()) / 2,
-                       df.y.min() + (df.y.max() - df.y.min()) / 2])
+                       df.y.min() + (df.z.max() - df.z.min()) / 2])
 
     # cloud = pv.PolyData(df.to_numpy())
     df['dist'] = np.zeros(df.shape[0])
@@ -234,6 +235,7 @@ def main():
         logging.debug(f'Using chunk {sys.argv[1]} with length {len(dirs)}.')
 
         res = np.empty(len(dirs), dtype='object')
+        t = time()
         for i, directory in enumerate(dirs):
             try:
                 res[i] = fun(directory)
@@ -242,6 +244,7 @@ def main():
             except Exception:
                 continue
 
+        logging.info(f'Elapsed time: {time() - t}')
         res = res[res != None]
         res = list(res)
         df = pd.DataFrame.from_dict(res)
