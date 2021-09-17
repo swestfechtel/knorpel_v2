@@ -107,7 +107,7 @@ def calculate_ellipse(vectors, center) -> [int, list]:
 
         points_in_ellipse = list()
         for point in vectors:
-            if is_in_ellipse(point, center, r):
+            if is_in_ellipse(point[:2], center[:2], r):
                 points_in_ellipse.append(point)
 
         if len(points_in_ellipse) / len(vectors) > 0.2:
@@ -145,25 +145,25 @@ def get_femoral_thirds(plate) -> [int, int]:
     Splits a plate into three subregions, each one containing 33% of all points.
 
     :param plate: all vectors making up the plate
-    :return: two split indices for the x-axis
+    :return: two split indices for the y-axis
     """
-    xmin = min(item[0] for item in plate)
-    xmax = max(item[0] for item in plate)
-    xrange = xmax - xmin
-    first_split = int(xrange / 3)
-    second_split = 2 * first_split
+    ymin = min(item[1] for item in plate)
+    ymax = max(item[1] for item in plate)
+    yrange = ymax - ymin
+    first_split = ymin + int(yrange / 3)
+    second_split = ymin + 2 * int(yrange / 3)
 
     points_in_first_third = list()
     points_in_second_third = list()
     num_it = 0
 
-    while not (abs(len(points_in_first_third) / len(plate) - .33) < .01):
-        if num_it > 15:
+    while not (abs(len(points_in_first_third) / len(plate) - .33) < .02):
+        if num_it > 30:
             break
 
         points_in_first_third = list()
         for point in plate:
-            if point[0] < first_split:
+            if point[1] < first_split:
                 points_in_first_third.append(point)
 
         if len(points_in_first_third) / len(plate) > 0.33:
@@ -175,13 +175,13 @@ def get_femoral_thirds(plate) -> [int, int]:
 
     num_it = 0
 
-    while not (abs(len(points_in_second_third) / len(plate) - .33) < .01):
-        if num_it > 15:
+    while not (abs(len(points_in_second_third) / len(plate) - .33) < .02):
+        if num_it > 30:
             break
 
         points_in_second_third = list()
         for point in plate:
-            if first_split <= point[0] < second_split:
+            if first_split <= point[1] < second_split:
                 points_in_second_third.append(point)
 
         if len(points_in_second_third) / len(plate) > 0.33:
@@ -207,9 +207,8 @@ def classify_tibial_point(vector, left_regions, right_regions, split_vector) -> 
 
     al, bl, cl, dl, l_rad, l_center = left_regions
     ar, br, cr, dr, r_rad, r_center = right_regions
-
+    # print(vector)
     if vector[1] < split_vector[1]:
-
         if is_in_ellipse(vector, l_center[:2], l_rad):
             return 'cLT'
 
@@ -268,16 +267,16 @@ def classify_femoral_point(vector, left_regions, right_regions, split_vector) ->
     r_first_split, r_second_split = right_regions
 
     if vector[1] < split_vector[1]:
-        if vector[0] < l_first_split:
+        if vector[1] < l_first_split:
             return 'ecLF'
-        elif l_first_split < vector[0] < l_second_split:
+        elif l_first_split <= vector[1] <= l_second_split:
             return 'ccLF'
         else:
             return 'icLF'
     else:
-        if vector[0] < r_first_split:
+        if vector[1] < r_first_split:
             return 'icMF'
-        elif r_first_split < vector[0] < r_second_split:
+        elif r_first_split <= vector[1] <= r_second_split:
             return 'ccMF'
         else:
             return 'ecMF'
@@ -385,8 +384,8 @@ def tibial_landmarks(vectors) -> [list, list, np.ndarray]:
     split_vector = cluster.cluster_centers_[0]
     left_plate, right_plate = split_into_plates(vectors, split_vector)
 
-    left_plate_cog = KMeans(n_clusters=1, random_state=0).fit(left_plate).cluster_centers_[0]
-    right_plate_cog = KMeans(n_clusters=1, random_state=0).fit(right_plate).cluster_centers_[0]
+    left_plate_cog = KMeans(n_clusters=1, random_state=0).fit([x[:2] for x in left_plate]).cluster_centers_[0]
+    right_plate_cog = KMeans(n_clusters=1, random_state=0).fit([x[:2] for x in right_plate]).cluster_centers_[0]
 
     left_plate_radius, left_plate_circle = calculate_ellipse(left_plate, left_plate_cog)
     right_plate_radius, right_plate_circle = calculate_ellipse(right_plate, right_plate_cog)
@@ -405,7 +404,7 @@ def femoral_landmarks(vectors) -> [list, list, np.ndarray]:
     Computes the landmarks of a femoral cartilage volume which can be used to split the volume into subregions.
 
     Splits the volume into a left and right plate using KMeans clustering.
-    For each plate, splits the plate into equal thirds along the x axis.
+    For each plate, splits the plate into equal thirds along the y axis.
 
     :param vectors: Array-like structure containing the vectors making up the cartilage volume
     :return: A list containing the landmarks of the left plate, right plate and the split vector between the plates.

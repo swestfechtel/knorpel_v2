@@ -109,7 +109,7 @@ def fun(directory):
     df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
     center = np.array([df.x.min() + (df.x.max() - df.x.min()) / 2,
                        df.y.min() + (df.y.max() - df.y.min()) / 2,
-                       df.y.min() + (df.z.max() - df.z.min()) / 2])
+                       df.z.min() + (df.z.max() - df.z.min()) / 2])
 
     # cloud = pv.PolyData(df.to_numpy())
     df['dist'] = np.zeros(df.shape[0])
@@ -160,7 +160,8 @@ def fun(directory):
     df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
     center = np.array([df.x.min() + (df.x.max() - df.x.min()) / 2,
                        df.y.min() + (df.y.max() - df.y.min()) / 2,
-                       df.y.min() + (df.z.max() - df.z.min()) / 2])
+                       df.z.max() * 1.25])
+                       # df.z.min() + (df.z.max() - df.z.min()) / 2])
 
     # cloud = pv.PolyData(df.to_numpy())
     df['dist'] = np.zeros(df.shape[0])
