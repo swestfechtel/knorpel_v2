@@ -6,10 +6,10 @@ All computational methods make use of segmented MRI scans of the human knee, fro
 
 \section{Mean cartilage thickness using meshes}
 \label{sec:Meshes}
-This is a three-dimensional approach using meshes and normal vectors to determine the mean thickness of a cartilage volume. The main idea is building an upper and a lower mesh, and calculating the average distance between the two, for example by ray tracing along the normal vectors of the lower mesh against the upper mesh. Other methods, like a K-D-tree nearest neighbour search, are also possible. This works well for the tibial cartilage, because due to its physical shape, it is possible to simply group each point by $x$ and $y$ coordinates and add the point with the highest (lowest) $z$ coordinate to the upper (lower) mesh. The result is two point clouds consisting of vectors $(x, y, z)$, as seen in figure \ref{fig:tibial_point_cloud} (red points make up the upper cloud, green the lower). These can then be converted into polygon meshes using the delaunay algorithm, which in turn allows for determining the normal vectors of the respective meshes. Mean cartilage thickness can be calculated by tracing along the normal vectors of the lower mesh against the upper mesh. For other methods not making use of the normals, like the previously mentioned nearest neighbour search, the delaunay conversion is optional. 
+This is a three-dimensional approach using meshes and normal vectors to determine the mean thickness of a cartilage volume. The main idea is building an upper and a lower mesh, and calculating the average distance between the two, for example by ray tracing along the normal vectors of the lower mesh against the upper mesh. Other methods, like a K-D-tree nearest neighbour search, are also possible. This works well for the tibial cartilage, because due to its physical shape, it is possible to simply group each point by $x$ and $y$ coordinates and add the point with the highest (lowest) $z$ coordinate to the upper (lower) mesh. The result is two point clouds consisting of vectors $(x, y, z)$, as seen in figure \ref{fig:tibial_point_cloud} (red points make up the upper cloud, green the lower). These can then be converted into polygon meshes using the delaunay algorithm, which in turn allows for determining the normal vectors of the respective meshes (here, the point normals are used as opposed to the cell normals). Mean cartilage thickness can be calculated by tracing along the normal vectors of the lower mesh against the upper mesh. For other methods not making use of the normals, like the previously mentioned nearest neighbour search, the delaunay conversion is optional. 
 \begin{figure}[htb!]
 	\centering
-	\includegraphics[width=\linewidth]{./figures/s2}
+	\includegraphics[width=\linewidth]{./figures/tibial_points}
 	\caption{Point clouds of the tibial cartilage}
 	\label{fig:tibial_point_cloud}
 \end{figure}
@@ -17,7 +17,7 @@ This is a three-dimensional approach using meshes and normal vectors to determin
 The femoral cartilage makes things a bit more tricky. Due to its shape, building an upper and lower mesh is not trivial, because while for the tibial cartilage, there was only one respective vector for each coordinate pair $(x, y)$, there may now be multiple for the areas where the volume describes a curve, so just taking the minimum or maximum $z$ coordinate no longer suffices. Using the previous approach results in point clouds where some areas are left bare, as illustrated in figure \ref{fig:femoral_point_cloud}. One solution, used in this approach, is splitting the volume into parts, and rotating the curved sections, such that it is once again possible to choose points according to the $z$ coordinate. For a detailed description of how this splitting is achieved, refer to appendix \ref{sec:Splitting}. This allows for building an upper and lower point cloud and corresponding delaunay mesh for each part, calculating the mean distance in the same manner as before (aka ray tracing), and finally combining the results.
 \begin{figure}[htb!]
 	\centering
-	\includegraphics[width=\linewidth]{./figures/s4}
+	\includegraphics[width=\linewidth]{./figures/femoral_points}
 	\caption{Point clouds of the femoral cartilage}
 	\label{fig:femoral_point_cloud}
 \end{figure}
@@ -27,11 +27,19 @@ The femoral cartilage makes things a bit more tricky. Due to its shape, building
 This is a three-dimensional approach using ray tracing along normal vectors to determine the mean thickness of a cartilage volume. This is another proposed solution to the previously discussed issue with the shape of the femoral cartilage volume. Instead of using meshes, this approach takes a central point underneath or above the cartilage and utilizes ray tracing from that point against the volume to discover intersection points. The central point is determined by calculating the halfway points between minimum and maximum $x$, $y$ and $z$ coordinates of the cartilage volume, respectively.
 \par
 A sphere is constructed around the central point, and each of its normal vectors gets extended until it hits the cartilage point cloud, or a maximum number of iterations is reached. If a point is hit, it is saved and the vector again gets extended until it doesn't hit any points anymore, i.e. it is extended past beyond the cartilage. The distance between the first and last point hit is calculated and added to the result set. This way, it is possible to determine the average thickness of the cartilage. One issue with this approach is that it is computationally expensive, as intersection problems tend to be; in essence, there is a trade-off between accuracy and runtime: The more vectors are used for the ray tracing, the more accurate the result is going to be, but each added vector makes the computation more expensive. The resolution of the sphere was set to 30 $\times$ 30, resulting in $30 + 29 \cdot 28 = 842$ normal vectors. No optimization analysis has been performed as of yet.
+
 \begin{figure}[htb!]
 	\centering
-	\includegraphics[width=\linewidth]{./figures/s5}
+	\includegraphics[width=\linewidth]{./figures/femoral_sphere}
 	\caption{Ray tracing against the femoral cartilage using a central sphere}
 	\label{fig:femoral_sphere}
+\end{figure}
+
+\begin{figure}[htb!]
+	\centering
+	\includegraphics[width=\linewidth]{./figures/tibial_sphere}
+	\caption{Ray tracing against the tibial cartilage using a central sphere}
+	\label{fig:tibial_sphere}
 \end{figure}
 
 \section{Mean cartilage thickness using two-dimensional function fitting}

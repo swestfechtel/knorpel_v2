@@ -2,48 +2,48 @@
 \label{sec:Subregions}
 As proposed by Wirth \& Eckstein, the two cartilage plates of the medial / lateral femoral condyle are divided into three subregions each (central, internal and external), while the two cartilage plates of the medial / lateral tibia are divided into five subregions each (central, internal, external, anterior, posterior). For nomenclature, refer to the table of acronyms below. 
 \subsection{Determination of the femoral subregions}
-For each plate of the femur, each subregion should encompass approximately 33\% of the plate volume. This was achieved in practice by splitting the volume into three parts along the x-axis; two splitting points $x1, x2$ are chosen arbitrarily, such that $x_{min} < x1 < x2 < x_{max}, x1 = \frac{x_{max} - x_{min}}{3}, x2 = 2 \cdot x1$, where $x_{max}, x_{min}$ are the maximum / minimum x values, respectively. $x1$ and $x2$ are then iteratively moved along the x-axis until the constraint is satisfied, i.e. 33\% of all data points lie left of $x1$, 33\% lie between $x1$ and $x2$ and 33\% lie right of $x2$.
+For each plate of the femur, each subregion should encompass approximately 33\% of the plate volume. This was achieved in practice by splitting the volume into three parts along the y-axis; two splitting points $x1, x2$ are chosen arbitrarily, such that $y_{min} < y1 < y2 < y_{max}, y1 = \frac{y_{max} - y_{min}}{3}, y2 = 2 \cdot y1$, where $y_{max}, y_{min}$ are the maximum / minimum y values, respectively. $y1$ and $y2$ are then iteratively moved along the y-axis until the constraint is satisfied, i.e. 33\% of all data points lie left of $y1$, 33\% lie between $y1$ and $y2$ and 33\% lie right of $y2$.
 \subsection{Determination of the tibial subregions}
 For each plate, an ellipse around the center of the plate, aka the central region, should encompass approximately 20\% of the plate volume, and four triangles surrounding the ellipse should be of variable size. This was achieved in practice by first determining the center of gravity of the plate through K-Means clustering and constructing an ellipse around this point; a radius $r$ is chosen arbitrarily, and is lengthened iteratively until the constraint is satisfied, i.e. 20\% of all data points lie within the ellipse. The four triangles surrounding the ellipse are determined by calculating the corners $a, b, c, d$ of the plate, and data points are assigned to subregions according to their position relative to the vectors $\vec{ac}$ and $\vec{db}$, which is calculated via cross product.
 
 \begin{minted}[escapeinside=~~,mathescape=true,breaklines,linenos]{text}
 	Procedure to determine femoral subregions
 	Given:
-	x_axis := range of x-axis
+	y_axis := range of x-axis
 	plate := data points (x, y, z) making up a cartilage plate
 	
 	Procedure:
-	x_min, x_max := min(x_axis), max(x_axis)
-	x_range := x_max - x_min
-	x1 := x_range / 3
-	x2 := 2 * x1
+	y_min, y_max := min(y_axis), max(y_axis)
+	y_range := y_max - y_min
+	y1 := y_range / 3
+	y2 := 2 * y1
 	first_third := empty set
 	second_third := empty set
 	
 	while len(first_third) / len(plate) is not .33 do
-		first_third := {d ~$\in$~ plate | d.x < x1}
+		first_third := {d ~$\in$~ plate | d.y < y1}
 		if len(first_third) > .33 
-			x1 := x1 - 1
+			y1 := y1 - 1
 		else
-			x1 := x1 + 1
+			y1 := y1 + 1
 	
 	while len(second_plate) / len(plate) is not .33 do
-		second_plate := {d ~$\in$~ plate | x1 < d.x < x2}
+		second_plate := {d ~$\in$~ plate | y1 < d.y < y2}
 		if len(second_plate) > .33
-			x2 := x2 - 1
+			y2 := y2 - 1
 		else
-			x2 := x2 + 1
+			y2 := y2 + 1
 \end{minted}
 \begin{minted}[escapeinside=~~,mathescape=true,breaklines,linenos]{text}
 	Procedure to assign a femoral point to a subregion
 	Given:
 	plate := data points (x, y, z) making up a cartilage plate
-	x1, x2 := split points
+	y1, y2 := split points
 	
 	for point in plate do
-		if point.x < x1
+		if point.y < y1
 			point.region = external/internal # depending on whether point lies in left or right plate
-		if x1 < point.x < x2
+		if y1 < point.y < y2
 			point.region = central
 		else
 			point.region = external/internal # depending on whether point lies in left or right plate
@@ -103,3 +103,17 @@ For each plate, an ellipse around the center of the plate, aka the central regio
 			else
 				point.region := external
 \end{minted}
+
+\begin{figure}[htb!]
+	\centering
+	\includegraphics[width=\linewidth]{./figures/femoral_subregions}
+	\caption{Subregions of the femoral cartilage}
+	\label{fig:femoral_subregions}
+\end{figure}
+
+\begin{figure}[htb!]
+	\centering
+	\includegraphics[width=\linewidth]{./figures/tibial_subregions}
+	\caption{Subregions of the tibial cartilage}
+	\label{fig:tibial_subregions}
+\end{figure}
