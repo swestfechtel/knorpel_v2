@@ -15,6 +15,7 @@ from pebble import ProcessPool
 from pebble.common import ProcessExpired
 from concurrent.futures import TimeoutError
 from time import time
+from collections import defaultdict
 # from __future__ import division
 
 
@@ -195,6 +196,7 @@ def function_for_pool(directory):
         tibial_thickness[key] = np.nanmean(value)
 
     # femoral thickness
+    """
     try:
         left_portion, middle_portion, right_portion = split_femoral_volume(femoral_vectors)
         left_outer, left_inner = build_portion_delaunay(left_portion)
@@ -253,6 +255,60 @@ def function_for_pool(directory):
 
     femoral_thickness = {key: np.hstack((left_thickness[key], middle_thickness[key], right_thickness[key])) for key in
                          left_thickness.keys()}
+
+    keys = set(femoral_thickness.keys())
+    for key in keys:
+        value = femoral_thickness[key]
+        mask = value == 0
+        value[mask] = np.nan
+        femoral_thickness[key + '.aSD'] = np.nanstd(value)
+        femoral_thickness[key + '.aMav'] = np.nanmean(-np.sort(-value)[:math.ceil(len(value) * 0.01)])
+        femoral_thickness[key + '.aMiv'] = np.nanmean(np.sort(value)[:math.ceil(len(value) * 0.01)])
+        femoral_thickness[key] = np.nanmean(value)
+    """
+    cwbzl, cwbzr = utility.extract_central_weightbearing_zone(femoral_vectors, tibial_vectors)
+    lower_mesh_left, upper_mesh_left = utility.build_tibial_meshes(cwbzl.to_numpy())
+    lower_mesh_right, upper_mesh_right = utility.build_tibial_meshes(cwbzr.to_numpy())
+
+    left_landmarks = utility.femoral_landmarks(upper_mesh_left.points)
+    right_landmarks = utility.femoral_landmarks(upper_mesh_right.points)
+
+    left_thickness = dict()
+    left_thickness['ecLF'] = np.zeros(lower_mesh_left.n_points)
+    left_thickness['ccLF'] = np.zeros(lower_mesh_left.n_points)
+    left_thickness['icLF'] = np.zeros(lower_mesh_left.n_points)
+
+    right_thickness = dict()
+    right_thickness['icMF'] = np.zeros(lower_mesh_right.n_points)
+    right_thickness['ccMF'] = np.zeros(lower_mesh_right.n_points)
+    right_thickness['ecMF'] = np.zeros(lower_mesh_right.n_points)
+
+    left_normals = lower_mesh_left.compute_normals(cell_normals=False)
+    right_normals = lower_mesh_right.compute_normals(cell_normals=False)
+
+    _, left_thickness = utility.calculate_femoral_thickness(left_normals, lower_mesh_left, upper_mesh_left, sitk_image, left_landmarks, left_thickness, True)
+    _, right_thickness = utility.calculate_femoral_thickness(right_normals, lower_mesh_right, upper_mesh_right, sitk_image, right_landmarks, right_thickness, False)
+
+    femoral_thickness = dict()
+    femoral_thickness.update(left_thickness)
+    femoral_thickness.update(right_thickness)
+
+    lpdf, rpdf, adf = utility.extract_anterior_posterior_zones(femoral_vectors, cwbzl, cwbzr)
+    lp_lower_mesh, lp_upper_mesh = utility.build_tibial_meshes(lpdf.to_numpy()) # left (lateral) posterior region
+    rp_lower_mesh, rp_upper_mesh = utility.build_tibial_meshes(rpdf.to_numpy()) # right (medial) posterior region
+    a_lower_mesh, a_upper_mesh = utility.build_tibial_meshes(adf.to_numpy()) # anterior region
+
+    lp_normals = lp_lower_mesh.compute_normals(cell_normals=False)
+    rp_normals = rp_lower_mesh.compute_normals(cell_normals=False)
+    a_normals = a_lower_mesh.compute_normals(cell_normals=False)
+
+    lp_distances = utility.calculate_distance_without_classification(lp_normals, lp_lower_mesh, lp_upper_mesh, sitk_image)
+    rp_distances = utility.calculate_distance_without_classification(rp_normals, rp_lower_mesh, rp_upper_mesh, sitk_image)
+    a_distances = utility.calculate_distance_without_classification(a_normals, a_lower_mesh, a_upper_mesh, sitk_image)
+
+    femoral_thickness['pLF'] = lp_distances['distances']
+    femoral_thickness['pMF'] = rp_distances['distances']
+    femoral_thickness['aF'] = a_distances['distances']
 
     keys = set(femoral_thickness.keys())
     for key in keys:

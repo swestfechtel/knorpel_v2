@@ -12,6 +12,8 @@ import pandas as pd
 import nibabel as nb
 
 from sklearn.cluster import KMeans
+from collections import defaultdict
+from scipy import stats
 
 
 def get_subdirs(chunk):
@@ -252,9 +254,9 @@ def classify_tibial_point(vector, left_regions, right_regions, split_vector) -> 
             else:
                 return 'eMT'
 
-
+"""
 def classify_femoral_point(vector, left_regions, right_regions, split_vector) -> string:
-    """
+    ""
     Classifies a vector's subregion from the femoral cartilage according to its position.
 
     :param vector: the vector to classify
@@ -262,7 +264,7 @@ def classify_femoral_point(vector, left_regions, right_regions, split_vector) ->
     :param right_regions: split indices for the right plate
     :param split_vector: the vector with which to split into left and right plate
     :return: a classification label for the vector
-    """
+    ""
     l_first_split, l_second_split = left_regions
     r_first_split, r_second_split = right_regions
 
@@ -280,6 +282,23 @@ def classify_femoral_point(vector, left_regions, right_regions, split_vector) ->
             return 'ccMF'
         else:
             return 'ecMF'
+"""
+def classify_femoral_point(vector, landmarks, left=True):
+    first_split, second_split = landmarks
+    if left:
+        if vector[1] < first_split:
+            return 'ecLF'
+        elif first_split <= vector[1] <= second_split:
+            return 'ccLF'
+        else:
+            return 'icLF'
+    else:
+        if vector[1] < first_split:
+            return 'icMF'
+        elif first_split <= vector[1] <= second_split:
+            return 'ccMF'
+        else:
+            return 'ecMF'
 
 
 def read_image(path: string) -> [sitk.Image, np.array]:
@@ -294,14 +313,15 @@ def read_image(path: string) -> [sitk.Image, np.array]:
     return sitk_image, arr
 
 
+"""
 def build_3d_cartilage_array(image, color_code=3) -> np.array:
-    """
+    ""
     Extracts all vectors making up a cartilage according to color coding and packs them into a numpy array.
 
     :param image: the 3d image representation of a mri scan
     :param color_code: the color coding of the cartilage to extract
     :return: a numpy array containing all vectors making up the cartilage
-    """
+    ""
     cartilage = np.where(image == color_code, image, 0)
 
     ys = np.sort(np.where(cartilage == color_code)[0])
@@ -323,6 +343,90 @@ def build_3d_cartilage_array(image, color_code=3) -> np.array:
     tmp = np.array(X, dtype=object)
     tmp = tmp[tmp != 0]
     return tmp
+"""
+def build_3d_cartilage_array(image, color_code=3) -> np.array:
+    cartilage = [0] * (image.shape[0] * image.shape[1] * image.shape[2])
+    indx = 0
+    for y in range(image.shape[0]):
+        for x in range(image.shape[1]):
+            for z in range(image.shape[2]):
+                if image[y,x,z] == color_code:
+                    cartilage[indx] = [x, y, z]
+                    indx += 1
+
+    cartilage = np.array(cartilage, dtype=object)
+    cartilage = cartilage[cartilage != 0]
+    return np.array([list(element) for element in cartilage])
+
+
+def extract_central_weightbearing_zone(femoral_cartilage, tibial_cartilage):
+    x, y, z, xy = get_xyz(tibial_cartilage)
+    df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
+    max_z = df.groupby(['x', 'y']).max()
+
+    tmp1 = [np.array(item) for item in max_z.index]
+    tmp2 = [item for item in max_z.to_numpy()]
+    max_z = np.column_stack((tmp1, tmp2))
+
+    dd = defaultdict(list)
+    left_tibial_regions, right_tibial_regions, split_vector = tibial_landmarks(max_z)
+    for v in max_z:
+        vector = np.array(v)
+        label = classify_tibial_point(vector[:2], left_tibial_regions, right_tibial_regions, split_vector)
+        dd[label].append(vector)
+
+    # extract external, central and internal subregions for each tibial cartilage plate
+    wbl = np.vstack((np.array(dd['eLT']), np.array(dd['cLT']), np.array(dd['iLT'])))
+    wbr = np.vstack((np.array(dd['iMT']), np.array(dd['cMT']), np.array(dd['eMT'])))
+
+    # pack them into a dataframe and cut the dimensions along the x axis to the min, max x expansion of the respective central subregion
+    tdfr = pd.DataFrame(data={'x': wbr[:,0], 'y': wbr[:,1], 'z': wbr[:,2]})
+    tdfl = pd.DataFrame(data={'x': wbl[:,0], 'y': wbl[:,1], 'z': wbl[:,2]})
+    tdfr = tdfr.loc[tdfr['x'] < max(np.array(dd['cMT'])[:,0])].loc[tdfr['x'] > min(np.array(dd['cMT'])[:,0])]
+    tdfl = tdfl.loc[tdfl['x'] < max(np.array(dd['cLT'])[:,0])].loc[tdfl['x'] > min(np.array(dd['cLT'])[:,0])]    
+
+    # pack the femoral cartilage into a dataframe and split into two plates
+    x, y, z, xy = get_xyz(femoral_cartilage)
+    df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
+    fdfl = df.loc[df['y'] < df['y'].mean()]
+    fdfr = df.loc[df['y'] >= df['y'].mean()]
+
+    # for each femoral plate, extract the central weight bearing zone according to the min, max x, y dimensions of the previously extracted tibial subregions
+    # aka extract the part of the femoral cartilage that is in contact with the tibial cartilage when standing
+    # left side first
+    minx = tdfl['x'].min()
+    maxx = tdfl['x'].max()
+    miny = tdfl['y'].min()
+    maxy = tdfl['y'].max()
+    cwbzl = fdfl.loc[fdfl['x'] > minx].loc[fdfl['x'] < maxx].loc[fdfl['y'] > miny].loc[fdfl['y'] < maxy]
+    cwbzl = cwbzl[(np.abs(stats.zscore(cwbzl)) < 2).all(axis=1)]
+
+    # then right side
+    minx = tdfr['x'].min()
+    maxx = tdfr['x'].max()
+    miny = tdfr['y'].min()
+    maxy = tdfr['y'].max()
+    cwbzr = fdfr.loc[fdfr['x'] > minx].loc[fdfr['x'] < maxx].loc[fdfr['y'] > miny].loc[fdfr['y'] < maxy]
+    cwbzr = cwbzr[(np.abs(stats.zscore(cwbzr)) < 2).all(axis=1)]
+
+    return cwbzl, cwbzr
+
+
+def extract_anterior_posterior_zones(femoral_cartilage, cwbzl, cwbzr):
+    x, y, z, xy = get_xyz(femoral_cartilage)
+    df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
+
+    left_plate = df.loc[df['y'] < df['y'].mean()]
+    right_plate = df.loc[df['y'] >= df['y'].mean()]
+
+    ladf = left_plate.loc[left_plate['x'] > cwbzl['x'].max()]
+    radf = right_plate.loc[right_plate['x'] > cwbzr['x'].max()]
+
+    lpdf = left_plate.loc[left_plate['x'] < cwbzl['x'].min()]
+    rpdf = right_plate.loc[right_plate['x'] < cwbzr['x'].min()]
+    pdf = pd.concat([lpdf, rpdf])
+
+    return ladf, radf, pdf
 
 
 def get_xyz(regions):
@@ -398,9 +502,9 @@ def tibial_landmarks(vectors) -> [list, list, np.ndarray]:
 
     return left_tibial_landmarks, right_tibial_landmarks, split_vector
 
-
+"""
 def femoral_landmarks(vectors) -> [list, list, np.ndarray]:
-    """
+    ""
     Computes the landmarks of a femoral cartilage volume which can be used to split the volume into subregions.
 
     Splits the volume into a left and right plate using KMeans clustering.
@@ -410,7 +514,7 @@ def femoral_landmarks(vectors) -> [list, list, np.ndarray]:
     :return: A list containing the landmarks of the left plate, right plate and the split vector between the plates.
     Landmark format is [first split coordinate, second split coordinate] such that #points left of first split ~=
     #points between first and second split ~= #points right of second split
-    """
+    ""
     cluster = KMeans(n_clusters=1, random_state=0).fit(vectors)
     split_vector = cluster.cluster_centers_[0]
     left_plate, right_plate = split_into_plates(vectors, split_vector)
@@ -422,6 +526,10 @@ def femoral_landmarks(vectors) -> [list, list, np.ndarray]:
     right_femoral_landmarks = [first_split, second_split]
 
     return left_femoral_landmarks, right_femoral_landmarks, split_vector
+"""
+def femoral_landmarks(vectors):
+    first_split, second_split = get_femoral_thirds(vectors)
+    return [first_split, second_split]
 
 
 def calculate_distance(lower_normals, lower_mesh, upper_mesh, sitk_image, left_landmarks, right_landmarks, split_vector, dictionary, femur=False):
@@ -460,6 +568,37 @@ def calculate_distance(lower_normals, lower_mesh, upper_mesh, sitk_image, left_l
         dictionary[label][i] = dist
 
     return lower_normals, dictionary
+
+
+def calculate_femoral_thickness(lower_normals, lower_mesh, upper_mesh, sitk_image, landmarks, dictionary, left=True):
+    lower_normals['distances'] = np.zeros(lower_mesh.n_points)
+    for i in range(lower_normals.n_points):
+        v = lower_mesh.points[i]
+        vec = lower_normals['Normals'][i] * lower_normals.length
+        v0 = v - vec
+        v1 = v + vec
+        iv, ic = upper_mesh.ray_trace(v0, v1, first_point=True)
+        dist = np.sqrt(np.sum((iv - v) ** 2)) * sitk_image.GetSpacing()[2]
+        lower_normals['distances'][i] = dist
+        label = classify_femoral_point(v[:2], landmarks, left)
+
+        dictionary[label][i] = dist
+
+    return lower_normals, dictionary
+
+
+def calculate_distance_without_classification(lower_normals, lower_mesh, upper_mesh, sitk_image):
+    lower_normals['distances'] = np.zeros(lower_mesh.n_points)
+    for i in range(lower_normals.n_points):
+        v = lower_mesh.points[i]
+        vec = lower_normals['Normals'][i] * lower_normals.length
+        v0 = v - vec
+        v1 = v + vec
+        iv, ic = upper_mesh.ray_trace(v0, v1, first_point=True)
+        dist = np.sqrt(np.sum((iv - v) ** 2)) * sitk_image.GetSpacing()[2]
+        lower_normals['distances'][i] = dist 
+
+    return lower_normals
 
 
 def isolate_cartilage(layer: np.array, color_code: int = 3) -> np.array:

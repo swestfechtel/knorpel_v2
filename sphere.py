@@ -105,6 +105,7 @@ def fun(directory):
 
     femoral_vectors = [list(element) for element in femoral_cartilage]
     tibial_vectors = [list(element) for element in tibial_cartilage]
+    
     x, y, z, xy = utility.get_xyz(femoral_vectors)
     df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
     center = np.array([df.x.min() + (df.x.max() - df.x.min()) / 2,
