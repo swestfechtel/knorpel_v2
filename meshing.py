@@ -267,8 +267,8 @@ def function_for_pool(directory):
         femoral_thickness[key] = np.nanmean(value)
     """
     cwbzl, cwbzr = utility.extract_central_weightbearing_zone(femoral_vectors, tibial_vectors)
-    lower_mesh_left, upper_mesh_left = utility.build_tibial_meshes(cwbzl.to_numpy())
-    lower_mesh_right, upper_mesh_right = utility.build_tibial_meshes(cwbzr.to_numpy())
+    lower_mesh_left, upper_mesh_left = utility.build_femoral_meshes(cwbzl)
+    lower_mesh_right, upper_mesh_right = utility.build_femoral_meshes(cwbzr)
 
     left_landmarks = utility.femoral_landmarks(upper_mesh_left.points)
     right_landmarks = utility.femoral_landmarks(upper_mesh_right.points)
@@ -351,7 +351,7 @@ def main():
         res_list = list()
         t = time()
         with ProcessPool() as pool:
-            res = pool.map(function_for_pool, files, timeout=180)
+            res = pool.map(function_for_pool, files, timeout=600)
             # res = pool.map(function=function_for_pool, iterables=files, chunksize=int(len(files)/8), timeout=180)
             # pool.close()
             # pool.terminate()

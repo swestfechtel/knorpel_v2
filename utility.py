@@ -472,6 +472,40 @@ def build_tibial_meshes(vectors: list) -> [pv.core.pointset.PolyData, pv.core.po
     return lower_mesh, upper_mesh
 
 
+def build_femoral_meshes(vectors: pd.DataFrame) -> [pv.core.pointset.PolyData, pv.core.pointset.PolyData]:
+    """
+    Builds upper and lower delaunay mesh of a tibial cartilage volume.
+
+    Groups all vectors by (x, y) and adds the vector (x, y, max(z)) to the upper mesh, and
+    the vector (x, y, min(z)) to the lower mesh, for every pair (x, y).
+
+    :param vectors: An array of three-dimensional vectors (x, y, z) making up the cartilage volume
+    :return: A lower and upper mesh, by z coordinate
+    """
+    df = vectors
+    max_z = df.groupby(['x', 'y']).max()
+    min_z = df.groupby(['x', 'y']).min()
+
+    # extract max and min vectors by z coordinate
+    tmp1 = [np.array(item) for item in max_z.index]
+    tmp2 = [item for item in max_z.to_numpy()]
+    max_z = np.column_stack((tmp1, tmp2))
+
+    tmp1 = [np.array(item) for item in min_z.index]
+    tmp2 = [item for item in min_z.to_numpy()]
+    min_z = np.column_stack((tmp1, tmp2))
+
+    # build two point clouds for the upper and lower vectors
+    upper_cloud = pv.PolyData(max_z)
+    lower_cloud = pv.PolyData(min_z)
+
+    # build polygon meshes for both point clouds using delaunay
+    lower_mesh = lower_cloud.delaunay_2d()
+    upper_mesh = upper_cloud.delaunay_2d()
+
+    return lower_mesh, upper_mesh
+
+
 def tibial_landmarks(vectors) -> [list, list, np.ndarray]:
     """
     Computes the landmarks of a tibial cartilage volume which can be used to split the volume into subregions.
