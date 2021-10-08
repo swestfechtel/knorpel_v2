@@ -106,6 +106,7 @@ def fun(directory):
     femoral_vectors = [list(element) for element in femoral_cartilage]
     tibial_vectors = [list(element) for element in tibial_cartilage]
     
+    """
     x, y, z, xy = utility.get_xyz(femoral_vectors)
     df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
     center = np.array([df.x.min() + (df.x.max() - df.x.min()) / 2,
@@ -156,6 +157,181 @@ def fun(directory):
         femoral_thickness[key + '.aMav'] = np.nanmean(-np.sort(-value)[:math.ceil(len(value) * 0.01)])
         femoral_thickness[key + '.aMiv'] = np.nanmean(np.sort(value)[:math.ceil(len(value) * 0.01)])
         femoral_thickness[key] = np.nanmean(value)
+    """
+    cwbzl, cwbzr = utility.extract_central_weightbearing_zone(femoral_vectors, tibial_vectors)
+    center_left = np.array([cwbzl.x.min() + (cwbzl.x.max() - cwbzl.x.min()) / 2,
+                        cwbzl.y.min() + (cwbzl.y.max() - cwbzl.y.min()) / 2,
+                        cwbzl.z.min() - (cwbzl.z.max() - cwbzl.z.min()) / 4])
+
+    center_right = np.array([cwbzr.x.min() + (cwbzr.x.max() - cwbzr.x.min()) / 2,
+                        cwbzr.y.min() + (cwbzr.y.max() - cwbzr.y.min()) / 2,
+                        cwbzr.z.min() - (cwbzr.z.max() - cwbzr.z.min()) / 4])
+
+    lower_mesh_left, upper_mesh_left = utility.build_femoral_meshes(cwbzl)
+    lower_mesh_right, upper_mesh_right = utility.build_femoral_meshes(cwbzr)
+
+    left_landmarks = utility.femoral_landmarks(upper_mesh_left.points)
+    right_landmarks = utility.femoral_landmarks(upper_mesh_right.points)
+
+    sphere_left = pv.Sphere(center=center_left, radius=1, theta_resolution=60, phi_resolution=60)
+    sphere_right = pv.Sphere(center=center_right, radius=1, theta_resolution=60, phi_resolution=60)
+
+    cwbzl['dist'] = np.zeros(cwbzl.shape[0])
+    cwbzl['dist'] = cwbzl.apply(lambda l: utility.vector_distance([l.x, l.y, l.z], center_left), axis=1)
+
+    cwbzr['dist'] = np.zeros(cwbzr.shape[0])
+    cwbzr['dist'] = cwbzr.apply(lambda l: utility.vector_distance([l.x, l.y, l.z], center_left), axis=1)
+
+    sphere_left.compute_normals(point_normals=True, cell_normals=False, inplace=True)
+    sphere_right.compute_normals(point_normals=True, cell_normals=False, inplace=True)
+
+    for i in range(sphere_left.n_points):
+        sphere_left_iter[i,0] = tuple(sphere_left.points[i])
+        sphere_left_iter[i,1] = tuple(sphere_left['Normals'][i])
+
+    for i in range(sphere_right.n_points):
+        sphere_right_iter[i,0] = tuple(sphere_right.points[i])
+        sphere_right_iter[i,1] = tuple(sphere_right['Normals'][i])
+
+    with Pool() as pool:
+        res = pool.starmap(partial(vector_trace, df=cwbzl), iterable=sphere_left_iter)
+
+    res = np.array(res, dtype='object')
+    res = res[res != None]
+
+    inner_points = [item[0] for item in res]
+    outer_points = [item[1] for item in res]
+
+    left_thickness = dict()
+    left_thickness['ecLF'] = np.zeros(len(outer_points))
+    left_thickness['ccLF'] = np.zeros(len(outer_points))
+    left_thickness['icLF'] = np.zeros(len(outer_points))
+
+    for i in range(len(outer_points)):
+        label = utility.classify_femoral_point(outer_points[i][:2], left_landmarks, left=True)
+        left_thickness[label][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[2]
+
+    with Pool() as pool:
+        res = pool.starmap(partial(vector_trace, df=cwbzr), iterable=sphere_right_iter)
+        
+    res = np.array(res, dtype='object')
+    res = res[res != None]
+
+    inner_points = [item[0] for item in res]
+    outer_points = [item[1] for item in res]
+
+    right_thickness = dict()
+    right_thickness['icMF'] = np.zeros(len(outer_points))
+    right_thickness['ccMF'] = np.zeros(len(outer_points))
+    right_thickness['ecMF'] = np.zeros(len(outer_points))
+
+    for i in range(len(outer_points)):
+        label = utility.classify_femoral_point(outer_points[i][:2], right_landmarks, left=False)
+        right_thickness[label][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[2]
+
+    femoral_thickness = dict()
+    femoral_thickness.update(left_thickness)
+    femoral_thickness.update(right_thickness)
+
+    lpdf, rpdf, adf = utility.extract_anterior_posterior_zones(femoral_vectors, cwbzl, cwbzr)
+
+    center_lp = np.array([lpdf.x.min() + (lpdf.x.max() - lpdf.x.min()) / 4,
+                    lpdf.y.min() + (lpdf.y.max() - lpdf.y.min()) / 2,
+                    lpdf.z.min() + (lpdf.z.max() - lpdf.z.min()) / 2])
+
+    center_rp = np.array([rpdf.x.min() + (rpdf.x.max() - rpdf.x.min()) / 4,
+                        rpdf.y.min() + (rpdf.y.max() - rpdf.y.min()) / 2,
+                        rpdf.z.min() + (rpdf.z.max() - rpdf.z.min()) / 2])
+
+    center_a = np.array([adf.x.min() + ((adf.x.max() - adf.x.min()) / 4) * 3,
+                        adf.y.min() + (adf.y.max() - adf.y.min()) / 2,
+                        adf.z.min() + (adf.z.max() - adf.z.min()) / 4])
+
+    sphere_lp = pv.Sphere(center=center_lp, radius=1, theta_resolution=60, phi_resolution=60)
+    sphere_rp = pv.Sphere(center=center_rp, radius=1, theta_resolution=60, phi_resolution=60)
+    sphere_a = pv.Sphere(center=center_a, radius=1, theta_resolution=60, phi_resolution=60)
+
+    lpdf['dist'] = np.zeros(lpdf.shape[0])
+    lpdf['dist'] = lpdf.apply(lambda l: utility.vector_distance([l.x, l.y, l.z], center_lp), axis=1)
+
+    rpdf['dist'] = np.zeros(rpdf.shape[0])
+    rpdf['dist'] = rpdf.apply(lambda l: utility.vector_distance([l.x, l.y, l.z], center_rp), axis=1)
+
+    adf['dist'] = np.zeros(adf.shape[0])
+    adf['dist'] = adf.apply(lambda l: utility.vector_distance([l.x, l.y, l.z], center_a), axis=1)
+
+    sphere_lp.compute_normals(point_normals=True, cell_normals=False, inplace=True)
+    sphere_rp.compute_normals(point_normals=True, cell_normals=False, inplace=True)
+    sphere_a.compute_normals(point_normals=True, cell_normals=False, inplace=True)
+
+    sphere_lp_iter = np.array([[np.nan, np.nan]] * sphere_lp.n_points, dtype='object')
+    sphere_rp_iter = np.array([[np.nan, np.nan]] * sphere_rp.n_points, dtype='object')
+    sphere_a_iter = np.array([[np.nan, np.nan]] * sphere_a.n_points, dtype='object')
+
+    for i in range(sphere_lp.n_points):
+        sphere_lp_iter[i,0] = tuple(sphere_lp.points[i])
+        sphere_lp_iter[i,1] = tuple(sphere_lp['Normals'][i])
+
+    for i in range(sphere_rp.n_points):
+        sphere_rp_iter[i,0] = tuple(sphere_rp.points[i])
+        sphere_rp_iter[i,1] = tuple(sphere_rp['Normals'][i])
+
+    for i in range(sphere_a.n_points):
+        sphere_a_iter[i,0] = tuple(sphere_a.points[i])
+        sphere_a_iter[i,1] = tuple(sphere_a['Normals'][i])
+
+    with Pool() as pool:
+        res = pool.starmap(partial(vector_trace, df=lpdf), iterable=sphere_lp_iter)
+        
+    res = np.array(res, dtype='object')
+    res = res[res != None]
+
+    inner_points = [item[0] for item in res]
+    outer_points = [item[1] for item in res]
+
+    femoral_thickness['pLF'] = np.zeros(len(outer_points))
+
+    for i in range(len(outer_points)):
+        femoral_thickness['pLF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[2]
+
+    with Pool() as pool:
+        res = pool.starmap(partial(vector_trace, df=rpdf), iterable=sphere_rp_iter)
+        
+    res = np.array(res, dtype='object')
+    res = res[res != None]
+
+    inner_points = [item[0] for item in res]
+    outer_points = [item[1] for item in res]
+
+    femoral_thickness['pMF'] = np.zeros(len(outer_points))
+
+    for i in range(len(outer_points)):
+        femoral_thickness['pMF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[2]
+
+    with Pool() as pool:
+        res = pool.starmap(partial(vector_trace, df=adf), iterable=sphere_a_iter)
+        
+    res = np.array(res, dtype='object')
+    res = res[res != None]
+
+    inner_points = [item[0] for item in res]
+    outer_points = [item[1] for item in res]
+
+    femoral_thickness['aF'] = np.zeros(len(outer_points))
+
+    for i in range(len(outer_points)):
+        femoral_thickness['aF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[2]
+
+    keys = set(femoral_thickness.keys())
+    for key in keys:
+        value = femoral_thickness[key]
+        mask = value == 0
+        value[mask] = np.nan
+        femoral_thickness[key + '.aSD'] = np.nanstd(value)
+        femoral_thickness[key + '.aMav'] = np.nanmean(-np.sort(-value)[:math.ceil(len(value) * 0.01)])
+        femoral_thickness[key + '.aMiv'] = np.nanmean(np.sort(value)[:math.ceil(len(value) * 0.01)])
+        femoral_thickness[key] = np.nanmean(value)
+    # Tibia
 
     x, y, z, xy = utility.get_xyz(tibial_vectors)
     df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
