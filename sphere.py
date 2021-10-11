@@ -185,6 +185,9 @@ def fun(directory):
     sphere_left.compute_normals(point_normals=True, cell_normals=False, inplace=True)
     sphere_right.compute_normals(point_normals=True, cell_normals=False, inplace=True)
 
+    sphere_left_iter = np.array([[np.nan, np.nan]] * sphere_left.n_points, dtype='object')
+    sphere_right_iter = np.array([[np.nan, np.nan]] * sphere_right.n_points, dtype='object')
+
     for i in range(sphere_left.n_points):
         sphere_left_iter[i,0] = tuple(sphere_left.points[i])
         sphere_left_iter[i,1] = tuple(sphere_left['Normals'][i])
