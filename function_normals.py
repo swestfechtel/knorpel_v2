@@ -279,7 +279,7 @@ def function_for_pool(directory):
 
 
 def main():
-	logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/normals/function_normals_default.log', encoding='utf-8', level=logging.DEBUG, filemode='w')
+	logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/function_normals/function_normals_default.log', encoding='utf-8', level=logging.DEBUG, filemode='w')
     logging.debug('Entered main.')
 
     try:
@@ -331,7 +331,7 @@ def main():
             df = pd.DataFrame.from_dict(res_list)
             df.index = df['dir']
             df = df.drop('dir', axis=1)
-            df.to_pickle(f'/work/scratch/westfechtel/manpickles/mesh/{sys.argv[1]}')
+            df.to_pickle(f'/work/scratch/westfechtel/manpickles/function_normals/{sys.argv[1]}')
     except Exception as e:
         logging.debug(traceback.format_exc())
         logging.debug(sys.argv)
