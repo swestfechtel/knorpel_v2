@@ -5,7 +5,6 @@ import pprint
 import logging
 import traceback
 import sys
-import time
 
 import numpy as np
 import pandas as pd
@@ -17,6 +16,7 @@ from pebble import ProcessPool
 from pebble.common import ProcessExpired
 from concurrent.futures import TimeoutError
 from tqdm import tqdm
+from time import time
 
 
 def build_cwbz_layers(df):
@@ -53,7 +53,7 @@ def trace(p, v, tolerance, df):
 
 
 def calculate_region_thickness(layers, dictionary, xs, left_landmarks, right_landmarks, cwbz=True, left=True, label=None, tibia=False, split_vector=None):
-	for layer_index, layer in enumerate(tqdm(layers)):
+	for layer_index, layer in enumerate(layers):
 		if cwbz or tibia:
 			x = np.array([x[0] for x in layer])
 			y = np.array([x[1] for x in layer])
