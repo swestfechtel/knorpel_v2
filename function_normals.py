@@ -280,61 +280,61 @@ def function_for_pool(directory):
 
 def main():
 	logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/function_normals/function_normals_default.log', encoding='utf-8', level=logging.DEBUG, filemode='w')
-    logging.debug('Entered main.')
+	logging.debug('Entered main.')
 
-    try:
-        assert len(sys.argv) == 2
-        chunk = np.load(f'/work/scratch/westfechtel/chunks/{sys.argv[1]}.npy')
-        # chunk = sys.argv[1]
+	try:
+		assert len(sys.argv) == 2
+		chunk = np.load(f'/work/scratch/westfechtel/chunks/{sys.argv[1]}.npy')
+		# chunk = sys.argv[1]
 
-        filehandler = logging.FileHandler(f'/work/scratch/westfechtel/pylogs/function_normals/{sys.argv[1]}.log', mode='w')
-        filehandler.setLevel(logging.DEBUG)
-        root = logging.getLogger()
-        for handler in root.handlers[:]:
-            root.removeHandler(handler)
+		filehandler = logging.FileHandler(f'/work/scratch/westfechtel/pylogs/function_normals/{sys.argv[1]}.log', mode='w')
+		filehandler.setLevel(logging.DEBUG)
+		root = logging.getLogger()
+		for handler in root.handlers[:]:
+			root.removeHandler(handler)
 
-        root.addHandler(filehandler)
+		root.addHandler(filehandler)
 
-        files = utility.get_subdirs(chunk)
+		files = utility.get_subdirs(chunk)
 
-        # debug !!
-        # files = files[-100:-1]
+		# debug !!
+		# files = files[-100:-1]
 
-        logging.info(f'Using chunk {sys.argv[1]} with length {len(files)}.')
+		logging.info(f'Using chunk {sys.argv[1]} with length {len(files)}.')
 
-        res_list = list()
-        t = time()
-        with ProcessPool() as pool:
-            res = pool.map(function_for_pool, files, timeout=600)
-            # res = pool.map(function=function_for_pool, iterables=files, chunksize=int(len(files)/8), timeout=180)
-            # pool.close()
-            # pool.terminate()
+		res_list = list()
+		t = time()
+		with ProcessPool() as pool:
+			res = pool.map(function_for_pool, files, timeout=600)
+			# res = pool.map(function=function_for_pool, iterables=files, chunksize=int(len(files)/8), timeout=180)
+			# pool.close()
+			# pool.terminate()
 
-            iterator = res.result()
-            while True:
-                try:
-                    tmp = next(iterator)
-                    res_list.append(tmp)
-                    # logging.info(f'Adding {tmp} to result list.')
-                except TimeoutError:
-                    logging.error('Timeout error.')
-                    continue
-                except StopIteration:
-                    logging.info('End of iterator.')
-                    break
-                except ProcessExpired as exp:
-                    logging.error(exp)
-                    continue
+			iterator = res.result()
+			while True:
+				try:
+					tmp = next(iterator)
+					res_list.append(tmp)
+					# logging.info(f'Adding {tmp} to result list.')
+				except TimeoutError:
+					logging.error('Timeout error.')
+					continue
+				except StopIteration:
+					logging.info('End of iterator.')
+					break
+				except ProcessExpired as exp:
+					logging.error(exp)
+					continue
 
-            logging.info(f'Elapsed time: {time() - t}')
-            # df = pd.DataFrame.from_dict(res)
-            df = pd.DataFrame.from_dict(res_list)
-            df.index = df['dir']
-            df = df.drop('dir', axis=1)
-            df.to_pickle(f'/work/scratch/westfechtel/manpickles/function_normals/{sys.argv[1]}')
-    except Exception as e:
-        logging.debug(traceback.format_exc())
-        logging.debug(sys.argv)
+		logging.info(f'Elapsed time: {time() - t}')
+		# df = pd.DataFrame.from_dict(res)
+		df = pd.DataFrame.from_dict(res_list)
+		df.index = df['dir']
+		df = df.drop('dir', axis=1)
+		df.to_pickle(f'/work/scratch/westfechtel/manpickles/function_normals/{sys.argv[1]}')
+	except Exception as e:
+		logging.debug(traceback.format_exc())
+		logging.debug(sys.argv)
 
 
 if __name__ == '__main__':
