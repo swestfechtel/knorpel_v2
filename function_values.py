@@ -190,25 +190,29 @@ def function_for_pool(directory):
     total_thickness['aMT'] = np.zeros(1)
     total_thickness['cMT'] = np.zeros(1)
 
-    xs, layers = function_normals.build_cwbz_layers(cwbzl)
-    total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
-                                                 right_landmarks=right_landmarks, cwbz=True, left=True, label=None, tibia=False, split_vector=None)
+    try:
+        xs, layers = function_normals.build_cwbz_layers(cwbzl)
+        total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
+                                                     right_landmarks=right_landmarks, cwbz=True, left=True, label=None, tibia=False, split_vector=None)
 
-    xs, layers = function_normals.build_cwbz_layers(cwbzr)
-    total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
-                                                 right_landmarks=right_landmarks, cwbz=True, left=False, label=None, tibia=False, split_vector=None)
+        xs, layers = function_normals.build_cwbz_layers(cwbzr)
+        total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
+                                                     right_landmarks=right_landmarks, cwbz=True, left=False, label=None, tibia=False, split_vector=None)
 
-    xs, layers = function_normals.build_peripheral_layers(lpdf)
-    total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
-                                                 right_landmarks=right_landmarks, cwbz=False, left=False, label='pLF', tibia=False, split_vector=None)
+        xs, layers = function_normals.build_peripheral_layers(lpdf)
+        total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
+                                                     right_landmarks=right_landmarks, cwbz=False, left=False, label='pLF', tibia=False, split_vector=None)
 
-    xs, layers = function_normals.build_peripheral_layers(rpdf)
-    total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
-                                                 right_landmarks=right_landmarks, cwbz=False, left=False, label='pMF', tibia=False, split_vector=None)
+        xs, layers = function_normals.build_peripheral_layers(rpdf)
+        total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
+                                                     right_landmarks=right_landmarks, cwbz=False, left=False, label='pMF', tibia=False, split_vector=None)
 
-    xs, layers = function_normals.build_peripheral_layers(adf)
-    total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
-                                                 right_landmarks=right_landmarks, cwbz=False, left=False, label='aF', tibia=False, split_vector=None)
+        xs, layers = function_normals.build_peripheral_layers(adf)
+        total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
+                                                     right_landmarks=right_landmarks, cwbz=False, left=False, label='aF', tibia=False, split_vector=None)
+    except Exception:
+        logging.error(traceback.format_exc())
+        return dict()
 
     lower_mesh, upper_mesh = utility.build_tibial_meshes(tibial_vectors)
     left_landmarks, right_landmarks, split_vector = utility.tibial_landmarks(
@@ -224,13 +228,17 @@ def function_for_pool(directory):
     x, y, z, xy = utility.get_xyz(right_plate)
     rdf = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
 
-    xs, layers = function_normals.build_cwbz_layers(ldf)
-    total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
-                                                 right_landmarks=right_landmarks, cwbz=False, left=True, label=None, tibia=True, split_vector=split_vector)
+    try:
+        xs, layers = function_normals.build_cwbz_layers(ldf)
+        total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
+                                                     right_landmarks=right_landmarks, cwbz=False, left=True, label=None, tibia=True, split_vector=split_vector)
 
-    xs, layers = function_normals.build_cwbz_layers(rdf)
-    total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
-                                                 right_landmarks=right_landmarks, cwbz=False, left=False, label=None, tibia=True, split_vector=split_vector)
+        xs, layers = function_normals.build_cwbz_layers(rdf)
+        total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
+                                                     right_landmarks=right_landmarks, cwbz=False, left=False, label=None, tibia=True, split_vector=split_vector)
+    except Exception:
+        logging.error(traceback.format_exc())
+        return dict()
 
     keys = set(total_thickness.keys())
     for key in keys:
