@@ -146,9 +146,9 @@ def calculate_region_thickness(layers, dictionary, xs, left_landmarks, right_lan
 
 
 def function_for_pool(directory):
-    # segmentation_directory = f'/images/Shape/Medical/Knees/OAI/Manual_Segmentations/{directory}/{directory}_segm.mhd'
+    segmentation_directory = f'/images/Shape/Medical/Knees/OAI/Manual_Segmentations/{directory}/{directory}_segm.mhd'
     # segmentation_directory = f'/work/scratch/westfechtel/segmentations/{directory}'
-    segmentation_directory = '9255535_segm.mhd'
+    # segmentation_directory = '9255535_segm.mhd'
     sitk_image, np_image = utility.read_image(segmentation_directory)
 
     femoral_cartilage = utility.build_3d_cartilage_array(np_image, 3)
