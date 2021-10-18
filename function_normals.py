@@ -151,10 +151,12 @@ def calculate_region_thickness(layers, dictionary, xs, left_landmarks, right_lan
                 if point_1 is not None:
                     break
 
-            for j in range(10):
-                point_2 = trace(p, v2, j, df)
-                if point_2 is not None:
-                    break
+            t = time()
+            if point_1 is not None:
+                for j in range(10):
+                    point_2 = trace(p, v2, j, df)
+                    if point_2 is not None:
+                        break
 
             if point_1 is None or point_2 is None:
                 point_1 = None
@@ -251,9 +253,9 @@ def calculate_region_thickness(layers, dictionary, xs, left_landmarks, right_lan
 
 
 def function_for_pool(directory):
-    # segmentation_directory = f'/images/Shape/Medical/Knees/OAI/Manual_Segmentations/{directory}/{directory}_segm.mhd'
+    segmentation_directory = f'/images/Shape/Medical/Knees/OAI/Manual_Segmentations/{directory}/{directory}_segm.mhd'
     # segmentation_directory = f'/work/scratch/westfechtel/segmentations/{directory}'
-    segmentation_directory = '9255535_segm.mhd'
+    # segmentation_directory = '9144760_segm.mhd'
     sitk_image, np_image = utility.read_image(segmentation_directory)
 
     femoral_cartilage = utility.build_3d_cartilage_array(np_image, 3)
@@ -381,7 +383,7 @@ def main():
         res_list = list()
         t = time()
         with ProcessPool() as pool:
-            res = pool.map(function_for_pool, files, timeout=1200)
+            res = pool.map(function_for_pool, files, timeout=3600)
             # res = pool.map(function=function_for_pool, iterables=files, chunksize=int(len(files)/8), timeout=180)
             # pool.close()
             # pool.terminate()
@@ -423,5 +425,5 @@ def test():
 
 
 if __name__ == '__main__':
-    # main()
-    test()
+    main()
+    # test()
