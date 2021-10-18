@@ -5,6 +5,7 @@ import pprint
 import logging
 import traceback
 import sys
+import function_normals
 
 import numpy as np
 import pandas as pd
@@ -19,71 +20,12 @@ from tqdm import tqdm
 from time import time
 
 
-def build_cwbz_layers(df):
-    """
-    Builds two-dimensional (y, z) layers in x-direction for the central weight-bearing zones of the femoral cartilage.
-
-    :param df: A pandas dataframe representation of the central weight-bearing zone
-    :return: A list containing the x coordinates of the layers, and a numpy array containing the layers
-    """
-    layers = np.zeros(df.nunique()['x'], dtype='object')
-    xs = sorted(df['x'].unique())
-    for i in range(len(layers)):
-        layers[i] = df.loc[df['x'] == xs[i]][[
-            'y', 'z']].sort_values(by='y').to_numpy()
-
-    return xs, layers
-
-
-def build_peripheral_layers(df):
-    """
-    Builds two-dimensional (x, z) layers in y-direction for the peripheral zones of the femoral cartilage.
-
-    :param df: A pandas dataframe representation of the peripheral zone
-    :return: A list containing the y coordinates of the layers, and a numpy array containing the layers
-    """
-    layers = np.zeros(df.nunique()['y'], dtype='object')
-    ys = sorted(df['y'].unique())
-    for i in range(len(layers)):
-        layers[i] = df.loc[df['y'] == ys[i]][[
-            'x', 'z']].sort_values(by='z').to_numpy()
-
-    return ys, layers
-
-
-def trace(p, v, tolerance, df):
-    """
-    Uses vector tracing to find the outermost intersection point in a search space.
-
-    :param p: The origin point to trace from
-    :param v: The direction vector
-    :param tolerance: The tolerance for the intersection search
-    :param df: A pandas dataframe representation of the search space
-
-    :return: The outermost intersection point
-    """
-    point = None
-    alpha = 1
-    while True:
-        g = p + alpha * v
-        points = df.loc[abs(df['x'] - g[0]) <=
-                        tolerance].loc[abs(df['y'] - g[1]) <= tolerance]
-        if points.shape[0] == 0:
-            break
-
-        point = points.iloc[0].to_numpy()
-        alpha += 1
-
-    return point
-
-
 def calculate_region_thickness(layers, dictionary, xs, left_landmarks, right_landmarks, cwbz=True, left=True, label=None, tibia=False, split_vector=None):
     """
     Calculates the mean thickness per region for all layers of a cartilage.
 
-    Fits a function through the middle of each layer and computes a number of function normals. For each normal, traces from the intercept in negative and positive 
-    direction of the slope to find the outermost intersection points of the layer with the respective normal. For each pair of intersection points, calculates 
-    their distance from each other and assigns the result to the corresponding subregion.
+    Fits two functions through the upper and lower outlines of each layer. For each layer, computes the respective function values for each value
+    along the x axis, the difference of the two function values being the the thickness measure at that point. Assigns the results to the corresponding subregions.
 
     :param layers: A numpy array containing all two-dimensional layers making up the cartilage (or part thereof)
     :param dictionary: A dictionary mapping thickness values to region labels
@@ -107,105 +49,59 @@ def calculate_region_thickness(layers, dictionary, xs, left_landmarks, right_lan
             x = np.array([x[1] for x in layer])
             y = np.array([x[0] for x in layer])
 
-        try:
-            z = poly.polyfit(x, y, 3)
-            der = poly.polyder(z)
-        except np.linalg.LinAlgError as e:
-            logging.error(traceback.format_exc())
-            logging.warning(f'Got error while trying to fit function. Return empty dict.')
-            return dict()
-
-        fun = poly.polyval(x, z)
-        new_x = np.arange(min(x), max(x))
-        normals = [poly.polyval(
-            val, z) - (1 / poly.polyval(val, der)) * (new_x - val) for val in new_x]
-
-        if len(normals) == 0:
-            continue
-
         if cwbz or tibia:
             df = pd.DataFrame(layer, columns=['x', 'y'])
         else:
             # also swap x and y for search space or we don't get hits!
             df = pd.DataFrame({'x': x, 'y': y})
 
-        outline_points = np.zeros(len(normals), dtype=object)
+        upper_points = df.groupby(by='x').max().reset_index()
+        lower_points = df.groupby(by='x').min().reset_index()
+        try:
+            upper_fit = poly.polyfit(upper_points['x'], upper_points['y'], 3)
+            lower_fit = poly.polyfit(lower_points['x'], lower_points['y'], 3)
+        except np.linalg.LinAlgError as e:
+            logging.error(traceback.format_exc())
+            logging.warning(f'Got error while trying to fit function. Return empty dict.')
+            return dict()
 
-        for i in range(len(normals)):
-            x0 = new_x[i]
-            normal = normals[i]
-
-            if len(normal) < 2:
-                outline_points[i] = np.array([None, None])
-                continue
-
-            intercept = normal[i]
-            slope = -(normal[0] - normal[1])
-            p = np.array([x0, intercept])
-            v1 = np.array([-1, -slope]) * .1
-            v2 = np.array([1, slope]) * .1
-            point_1 = None
-            point_2 = None
-            for j in range(10):
-                point_1 = trace(p, v1, j, df)
-                if point_1 is not None:
-                    break
-
-            for j in range(10):
-                point_2 = trace(p, v2, j, df)
-                if point_2 is not None:
-                    break
-
-            if point_1 is None or point_2 is None:
-                point_1 = None
-                point_2 = None
-
-            outline_points[i] = np.array([point_1, point_2])
-
-        indices = []
-        for i in range(len(outline_points)):
-            if None in outline_points[i]:
-                indices.append(i)
-
-        outline_points = np.delete(outline_points, indices)
+        upper_fun = poly.polyval(upper_points['x'], upper_fit)
+        lower_fun = poly.polyval(lower_points['x'], lower_fit)
 
         layer_thickness = dict()
         if cwbz:
             if left:
-                layer_thickness['ecLF'] = np.zeros(len(outline_points))
-                layer_thickness['ccLF'] = np.zeros(len(outline_points))
-                layer_thickness['icLF'] = np.zeros(len(outline_points))
+                layer_thickness['ecLF'] = np.zeros(len(x))
+                layer_thickness['ccLF'] = np.zeros(len(x))
+                layer_thickness['icLF'] = np.zeros(len(x))
 
-                for i, point in enumerate(outline_points):
+                for i, val in enumerate(x):
                     label = utility.classify_femoral_point(
-                        np.array([xs[layer_index], point[0][0]]), left_landmarks, left=True)
-                    layer_thickness[label][i] = utility.vector_distance(
-                        point[0], point[1])
+                        np.array([xs[layer_index], val]), left_landmarks, left=True)
+                    layer_thickness[label][i] = poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)
 
                 keys = set(layer_thickness.keys())
                 for key in keys:
                     dictionary[key] = np.hstack(
                         (dictionary[key], layer_thickness[key]))
             else:
-                layer_thickness['ecMF'] = np.zeros(len(outline_points))
-                layer_thickness['ccMF'] = np.zeros(len(outline_points))
-                layer_thickness['icMF'] = np.zeros(len(outline_points))
+                layer_thickness['ecMF'] = np.zeros(len(x))
+                layer_thickness['ccMF'] = np.zeros(len(x))
+                layer_thickness['icMF'] = np.zeros(len(x))
 
-                for i, point in enumerate(outline_points):
+                for i, val in enumerate(x):
                     label = utility.classify_femoral_point(
-                        np.array([xs[layer_index], point[0][0]]), right_landmarks, left=False)
-                    layer_thickness[label][i] = utility.vector_distance(
-                        point[0], point[1])
+                        np.array([xs[layer_index], val]), right_landmarks, left=False)
+                    layer_thickness[label][i] = poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)
 
                 keys = set(layer_thickness.keys())
                 for key in keys:
                     dictionary[key] = np.hstack(
                         (dictionary[key], layer_thickness[key]))
         elif not cwbz and not tibia:
-            layer_thickness[label] = np.zeros(len(outline_points))
-            for i, point in enumerate(outline_points):
-                layer_thickness[label][i] = utility.vector_distance(
-                    point[0], point[1])
+            layer_thickness[label] = np.zeros(len(x))
+            for i, val in enumerate(x):
+                layer_thickness[label][i] = poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)
 
             keys = set(layer_thickness.keys())
             for key in keys:
@@ -213,34 +109,33 @@ def calculate_region_thickness(layers, dictionary, xs, left_landmarks, right_lan
                     (dictionary[key], layer_thickness[key]))
         else:
             if left:
-                layer_thickness['eLT'] = np.zeros(len(outline_points))
-                layer_thickness['pLT'] = np.zeros(len(outline_points))
-                layer_thickness['iLT'] = np.zeros(len(outline_points))
-                layer_thickness['aLT'] = np.zeros(len(outline_points))
-                layer_thickness['cLT'] = np.zeros(len(outline_points))
+                layer_thickness['eLT'] = np.zeros(len(x))
+                layer_thickness['pLT'] = np.zeros(len(x))
+                layer_thickness['iLT'] = np.zeros(len(x))
+                layer_thickness['aLT'] = np.zeros(len(x))
+                layer_thickness['cLT'] = np.zeros(len(x))
 
-                for i, point in enumerate(outline_points):
+                for i, val in enumerate(x):
                     label = utility.classify_tibial_point(np.array(
-                        [xs[layer_index], point[0][0]]), left_landmarks, right_landmarks, split_vector)
-                    layer_thickness[label][i] = utility.vector_distance(
-                        point[0], point[1])
+                        [xs[layer_index], val]), left_landmarks, right_landmarks, split_vector)
+                    layer_thickness[label][i] = poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)
 
                 keys = set(layer_thickness.keys())
                 for key in keys:
                     dictionary[key] = np.hstack(
                         (dictionary[key], layer_thickness[key]))
             else:
-                layer_thickness['eMT'] = np.zeros(len(outline_points))
-                layer_thickness['pMT'] = np.zeros(len(outline_points))
-                layer_thickness['iMT'] = np.zeros(len(outline_points))
-                layer_thickness['aMT'] = np.zeros(len(outline_points))
-                layer_thickness['cMT'] = np.zeros(len(outline_points))
+                layer_thickness['eMT'] = np.zeros(len(x))
+                layer_thickness['pMT'] = np.zeros(len(x))
+                layer_thickness['iMT'] = np.zeros(len(x))
+                layer_thickness['aMT'] = np.zeros(len(x))
+                layer_thickness['cMT'] = np.zeros(len(x))
 
-                for i, point in enumerate(outline_points):
+
+                for i, val in enumerate(x):
                     label = utility.classify_tibial_point(np.array(
-                        [xs[layer_index], point[0][0]]), left_landmarks, right_landmarks, split_vector)
-                    layer_thickness[label][i] = utility.vector_distance(
-                        point[0], point[1])
+                        [xs[layer_index], val]), left_landmarks, right_landmarks, split_vector)
+                    layer_thickness[label][i] = poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)
 
                 keys = set(layer_thickness.keys())
                 for key in keys:
@@ -295,23 +190,23 @@ def function_for_pool(directory):
     total_thickness['aMT'] = np.zeros(1)
     total_thickness['cMT'] = np.zeros(1)
 
-    xs, layers = build_cwbz_layers(cwbzl)
+    xs, layers = function_normals.build_cwbz_layers(cwbzl)
     total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=True, left=True, label=None, tibia=False, split_vector=None)
 
-    xs, layers = build_cwbz_layers(cwbzr)
+    xs, layers = function_normals.build_cwbz_layers(cwbzr)
     total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=True, left=False, label=None, tibia=False, split_vector=None)
 
-    xs, layers = build_peripheral_layers(lpdf)
+    xs, layers = function_normals.build_peripheral_layers(lpdf)
     total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=False, left=False, label='pLF', tibia=False, split_vector=None)
 
-    xs, layers = build_peripheral_layers(rpdf)
+    xs, layers = function_normals.build_peripheral_layers(rpdf)
     total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=False, left=False, label='pMF', tibia=False, split_vector=None)
 
-    xs, layers = build_peripheral_layers(adf)
+    xs, layers = function_normals.build_peripheral_layers(adf)
     total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=False, left=False, label='aF', tibia=False, split_vector=None)
 
@@ -329,11 +224,11 @@ def function_for_pool(directory):
     x, y, z, xy = utility.get_xyz(right_plate)
     rdf = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
 
-    xs, layers = build_cwbz_layers(ldf)
+    xs, layers = function_normals.build_cwbz_layers(ldf)
     total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=False, left=True, label=None, tibia=True, split_vector=split_vector)
 
-    xs, layers = build_cwbz_layers(rdf)
+    xs, layers = function_normals.build_cwbz_layers(rdf)
     total_thickness = calculate_region_thickness(layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=False, left=False, label=None, tibia=True, split_vector=split_vector)
 
@@ -353,7 +248,7 @@ def function_for_pool(directory):
 
 
 def main():
-    logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/function_normals/function_normals_default.log',
+    logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/function_values/function_values_default.log',
                         encoding='utf-8', level=logging.DEBUG, filemode='w')
     logging.debug('Entered main.')
 
@@ -363,7 +258,7 @@ def main():
         # chunk = sys.argv[1]
 
         filehandler = logging.FileHandler(
-            f'/work/scratch/westfechtel/pylogs/function_normals/{sys.argv[1]}.log', mode='w')
+            f'/work/scratch/westfechtel/pylogs/function_values/{sys.argv[1]}.log', mode='w')
         filehandler.setLevel(logging.DEBUG)
         root = logging.getLogger()
         for handler in root.handlers[:]:
@@ -408,20 +303,11 @@ def main():
         df.index = df['dir']
         df = df.drop('dir', axis=1)
         df.to_pickle(
-            f'/work/scratch/westfechtel/manpickles/function_normals/{sys.argv[1]}')
+            f'/work/scratch/westfechtel/manpickles/function_values/{sys.argv[1]}')
     except Exception as e:
         logging.debug(traceback.format_exc())
         logging.debug(sys.argv)
 
 
-def test():
-    logging.basicConfig(filename='function_normals_default.log',
-                        encoding='utf-8', level=logging.DEBUG, filemode='w')
-    t = time()
-    pprint.PrettyPrinter().pprint(function_for_pool(1))
-    print(time() - t)
-
-
 if __name__ == '__main__':
-    # main()
-    test()
+    main()
