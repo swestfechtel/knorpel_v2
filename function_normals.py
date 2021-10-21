@@ -332,11 +332,11 @@ def function_for_pool(directory):
     rdf = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
 
     try:
-        xs, layers = function_normals.build_cwbz_layers(ldf)
+        xs, layers = build_cwbz_layers(ldf)
         total_thickness = calculate_region_thickness(sitk_image = sitk_image, layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=True, label=None, tibia=True, split_vector=split_vector)
 
-        xs, layers = function_normals.build_cwbz_layers(rdf)
+        xs, layers = build_cwbz_layers(rdf)
         total_thickness = calculate_region_thickness(sitk_image = sitk_image, layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False, label=None, tibia=True, split_vector=split_vector)
     except Exception:
