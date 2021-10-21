@@ -297,25 +297,35 @@ def function_for_pool(directory):
     total_thickness['aMT'] = np.zeros(1)
     total_thickness['cMT'] = np.zeros(1)
 
+    t = time()
     xs, layers = build_cwbz_layers(cwbzl)
     total_thickness = calculate_region_thickness(sitk_image = sitk_image, layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=True, left=True, label=None, tibia=False, split_vector=None)
+    logging.info(f'{directory} finished calculations for cwbzl in {time() - t} seconds.')
 
+    t = time()
     xs, layers = build_cwbz_layers(cwbzr)
     total_thickness = calculate_region_thickness(sitk_image = sitk_image, layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=True, left=False, label=None, tibia=False, split_vector=None)
+    logging.info(f'{directory} finished calculations for cwbzr in {time() - t} seconds.')
 
+    t = time()
     xs, layers = build_peripheral_layers(lpdf)
     total_thickness = calculate_region_thickness(sitk_image = sitk_image, layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=False, left=False, label='pLF', tibia=False, split_vector=None)
+    logging.info(f'{directory} finished calculations for lpdf in {time() - t} seconds.')
 
+    t = time()
     xs, layers = build_peripheral_layers(rpdf)
     total_thickness = calculate_region_thickness(sitk_image = sitk_image, layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=False, left=False, label='pMF', tibia=False, split_vector=None)
+    logging.info(f'{directory} finished calculations for rpdf in {time() - t} seconds.')
 
+    t = time()
     xs, layers = build_peripheral_layers(adf)
     total_thickness = calculate_region_thickness(sitk_image = sitk_image, layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=False, left=False, label='aF', tibia=False, split_vector=None)
+    logging.info(f'{directory} finished calculations for adf in {time() - t} seconds.')
 
     lower_mesh, upper_mesh = utility.build_tibial_meshes(tibial_vectors)
     left_landmarks, right_landmarks, split_vector = utility.tibial_landmarks(
@@ -332,13 +342,17 @@ def function_for_pool(directory):
     rdf = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
 
     try:
+        t = time()
         xs, layers = build_cwbz_layers(ldf)
         total_thickness = calculate_region_thickness(sitk_image = sitk_image, layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=True, label=None, tibia=True, split_vector=split_vector)
+        logging.info(f'{directory} finished calculations for ldf in {time() - t} seconds.')
 
+        t = time()
         xs, layers = build_cwbz_layers(rdf)
         total_thickness = calculate_region_thickness(sitk_image = sitk_image, layers=layers, dictionary=total_thickness, xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False, label=None, tibia=True, split_vector=split_vector)
+        logging.info(f'{directory} finished calculations for rdf in {time() - t} seconds.')
     except Exception:
         logging.error(traceback.format_exc())
         return dict()
