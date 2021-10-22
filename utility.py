@@ -359,7 +359,7 @@ def build_3d_cartilage_array(image, color_code=3) -> np.array:
     cartilage = cartilage[cartilage != 0]
     return np.array([list(element) for element in cartilage])
     """
-    return np.argwhere(np_image==color_code)[:,[1,0,2]]
+    return np.argwhere(image==color_code)[:,[1,0,2]]
 
 
 def extract_central_weightbearing_zone(femoral_cartilage, tibial_cartilage):
