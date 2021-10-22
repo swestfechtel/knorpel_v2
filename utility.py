@@ -345,6 +345,7 @@ def build_3d_cartilage_array(image, color_code=3) -> np.array:
     return tmp
 """
 def build_3d_cartilage_array(image, color_code=3) -> np.array:
+    """
     cartilage = [0] * (image.shape[0] * image.shape[1] * image.shape[2])
     indx = 0
     for y in range(image.shape[0]):
@@ -357,6 +358,8 @@ def build_3d_cartilage_array(image, color_code=3) -> np.array:
     cartilage = np.array(cartilage, dtype=object)
     cartilage = cartilage[cartilage != 0]
     return np.array([list(element) for element in cartilage])
+    """
+    return np.argwhere(np_image==color_code)[:,[1,0,2]]
 
 
 def extract_central_weightbearing_zone(femoral_cartilage, tibial_cartilage):
@@ -419,14 +422,15 @@ def extract_anterior_posterior_zones(femoral_cartilage, cwbzl, cwbzr):
     left_plate = df.loc[df['y'] < df['y'].mean()]
     right_plate = df.loc[df['y'] >= df['y'].mean()]
 
-    ladf = left_plate.loc[left_plate['x'] > cwbzl['x'].max()]
-    radf = right_plate.loc[right_plate['x'] > cwbzr['x'].max()]
+    lpdf = left_plate.loc[left_plate['x'] > cwbzl['x'].max()]
+    rpdf = right_plate.loc[right_plate['x'] > cwbzr['x'].max()]
 
-    lpdf = left_plate.loc[left_plate['x'] < cwbzl['x'].min()]
-    rpdf = right_plate.loc[right_plate['x'] < cwbzr['x'].min()]
-    pdf = pd.concat([lpdf, rpdf])
+    ladf = left_plate.loc[left_plate['x'] < cwbzl['x'].min()]
+    radf = right_plate.loc[right_plate['x'] < cwbzr['x'].min()]
+    adf = pd.concat([ladf, radf])
 
-    return ladf, radf, pdf
+    return lpdf, rpdf, adf
+    # return lpdf, rpdf, ladf, radf
 
 
 def get_xyz(regions):
