@@ -12,6 +12,7 @@ import pyvista as pv
 from multiprocessing import Pool
 from functools import partial
 from time import time
+from sklearn.cluster import KMeans
 
 
 def vector_trace(sphere_points, sphere_normals, df):
@@ -334,18 +335,22 @@ def fun(directory):
         femoral_thickness[key + '.aMav'] = np.nanmean(-np.sort(-value)[:math.ceil(len(value) * 0.01)])
         femoral_thickness[key + '.aMiv'] = np.nanmean(np.sort(value)[:math.ceil(len(value) * 0.01)])
         femoral_thickness[key] = np.nanmean(value)
-    # Tibia
 
-    x, y, z, xy = utility.get_xyz(tibial_vectors)
-    df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
-    center = np.array([df.x.min() + (df.x.max() - df.x.min()) / 2,
-                       df.y.min() + (df.y.max() - df.y.min()) / 2,
-                       df.z.max() * 1.25])
+    # Tibia
+    cluster = KMeans(n_clusters=1, random_state=0).fit(tibial_vectors)
+    split_vector = cluster.cluster_centers_[0]
+    left_plate, right_plate = utility.split_into_plates(tibial_vectors, split_vector)
+
+    x, y, z, xy = utility.get_xyz(left_plate)
+    ldf = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
+    center = np.array([ldf.x.min() + (ldf.x.max() - ldf.x.min()) / 2,
+                       ldf.y.min() + (ldf.y.max() - ldf.y.min()) / 2,
+                       ldf.z.max() * 1.25])
                        # df.z.min() + (df.z.max() - df.z.min()) / 2])
 
     # cloud = pv.PolyData(df.to_numpy())
-    df['dist'] = np.zeros(df.shape[0])
-    df['dist'] = df.apply(lambda l: utility.vector_distance([l.x, l.y, l.z], center), axis=1)
+    ldf['dist'] = np.zeros(ldf.shape[0])
+    ldf['dist'] = ldf.apply(lambda l: utility.vector_distance([l.x, l.y, l.z], center), axis=1)
 
     num_sp = 60
     sphere = pv.Sphere(center=center, radius=1, theta_resolution=num_sp, phi_resolution=num_sp)
@@ -357,7 +362,7 @@ def fun(directory):
         sphere_iter[i][1] = tuple(sphere['Normals'][i])
 
     with Pool() as pool:
-        res = pool.starmap(partial(vector_trace, df=df), iterable=sphere_iter)
+        res = pool.starmap(partial(vector_trace, df=ldf), iterable=sphere_iter)
 
     res = np.array(res, dtype='object')
     res = res[res != None]
@@ -377,6 +382,39 @@ def fun(directory):
     tibial_thickness['iMT'] = np.zeros(len(outer_points))
 
     left_landmarks, right_landmarks, split_vector = utility.tibial_landmarks(outer_points)
+    for i in range(len(outer_points)):
+        label = utility.classify_tibial_point(outer_points[i][:2], left_landmarks, right_landmarks, split_vector)
+        tibial_thickness[label][i] = utility.vector_distance(outer_points[i], inner_points[i]) * \
+                                      sitk_image.GetSpacing()[2]
+
+    x, y, z, xy = utility.get_xyz(right_plate)
+    rdf = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
+    center = np.array([rdf.x.min() + (rdf.x.max() - rdf.x.min()) / 2,
+                       rdf.y.min() + (rdf.y.max() - rdf.y.min()) / 2,
+                       rdf.z.max() * 1.25])
+                       # df.z.min() + (df.z.max() - df.z.min()) / 2])
+
+    # cloud = pv.PolyData(df.to_numpy())
+    rdf['dist'] = np.zeros(rdf.shape[0])
+    rdf['dist'] = rdf.apply(lambda l: utility.vector_distance([l.x, l.y, l.z], center), axis=1)
+
+    num_sp = 60
+    sphere = pv.Sphere(center=center, radius=1, theta_resolution=num_sp, phi_resolution=num_sp)
+    sphere.compute_normals(point_normals=True, cell_normals=False, inplace=True)
+
+    sphere_iter = np.array([[np.nan, np.nan]] * sphere.n_points, dtype='object')
+    for i in range(sphere.n_points):
+        sphere_iter[i][0] = tuple(sphere.points[i])
+        sphere_iter[i][1] = tuple(sphere['Normals'][i])
+
+    with Pool() as pool:
+        res = pool.starmap(partial(vector_trace, df=rdf), iterable=sphere_iter)
+
+    res = np.array(res, dtype='object')
+    res = res[res != None]
+    inner_points = [item[0] for item in res]
+    outer_points = [item[1] for item in res]
+
     for i in range(len(outer_points)):
         label = utility.classify_tibial_point(outer_points[i][:2], left_landmarks, right_landmarks, split_vector)
         tibial_thickness[label][i] = utility.vector_distance(outer_points[i], inner_points[i]) * \

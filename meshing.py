@@ -147,10 +147,15 @@ def function_for_pool(directory):
 
     # determine landmarks for tibial plates for subregion classification
     left_tibial_landmarks, right_tibial_landmarks, split_vector = utility.tibial_landmarks(lower_mesh.points)
+    left_plate, right_plate = utility.split_into_plates(tibial_vectors, split_vector)
+
+    lower_mesh_left, upper_mesh_left = utility.build_tibial_meshes(left_plate)
+    lower_mesh_right, upper_mesh_right = utility.build_tibial_meshes(right_plate)
 
     # calculate average thickness per region by ray tracing normal vectors from lower to upper surface
     try:
-        lower_normals = lower_mesh.compute_normals(cell_normals=False)
+        lower_normals_left = lower_mesh_left.compute_normals(cell_normals=False)
+        lower_normals_right = lower_mesh_right.compute_normals(cell_normals=False)
     except Exception:
         logging.error(traceback.format_exc())
         logging.warning(f'Got error for file {directory} while trying to compute normals. Return empty dict.')
@@ -169,9 +174,13 @@ def function_for_pool(directory):
     tibial_thickness['pMT'] = np.zeros(lower_mesh.n_points)
     tibial_thickness['iMT'] = np.zeros(lower_mesh.n_points)
 
-    lower_normals['distances'] = np.zeros(lower_mesh.n_points)
+    lower_normals_left['distances'] = np.zeros(lower_mesh.n_points)
+    lower_normals_right['distances'] = np.zeros(lower_mesh.n_points)
     try:
-        lower_normals, femoral_thickness = utility.calculate_distance(lower_normals, lower_mesh, upper_mesh, sitk_image,
+        lower_normals_left, tibial_thickness = utility.calculate_distance(lower_normals_left, lower_mesh_left, upper_mesh_left, sitk_image,
+                                                          left_tibial_landmarks, right_tibial_landmarks,
+                                                          split_vector, tibial_thickness, femur=False)
+        lower_normals_right, tibial_thickness = utility.calculate_distance(lower_normals_right, lower_mesh_right, upper_mesh_right, sitk_image,
                                                           left_tibial_landmarks, right_tibial_landmarks,
                                                           split_vector, tibial_thickness, femur=False)
     except Exception:
@@ -181,9 +190,11 @@ def function_for_pool(directory):
         return dict()
 
     # total average thickness
+    """
     mask = lower_normals['distances'] == 0
     lower_normals['distances'][mask] = np.nan
     total_avg_thickness = np.nanmean(lower_normals['distances'])
+    """
 
     keys = set(tibial_thickness.keys())
     for key in keys:
