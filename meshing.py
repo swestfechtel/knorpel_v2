@@ -19,6 +19,7 @@ from collections import defaultdict
 # from __future__ import division
 
 
+@utility.deprecated
 def split_femoral_volume(vectors: list) -> [pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
     Splits a femoral cartilage volume into three parts.
@@ -33,8 +34,7 @@ def split_femoral_volume(vectors: list) -> [pd.DataFrame, pd.DataFrame, pd.DataF
     :param vectors: An array of three-dimensional vectors (x, y, z) making up the cartilage volume
     :return: pandas dataframes of vectors belonging to the left, central and right part
     """
-    x, y, z, xy = utility.get_xyz(vectors)
-    df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z']) # swap x and z
+    df = pd.DataFrame(data=vectors, columns=['x', 'y', 'z'])
     center = np.array([df.x.min() + (df.x.max() - df.x.min()) / 2,
                        df.y.min() + (df.y.max() - df.y.min()) / 2,
                        df.y.min() + (df.y.max() - df.y.min()) / 2])
@@ -62,6 +62,7 @@ def split_femoral_volume(vectors: list) -> [pd.DataFrame, pd.DataFrame, pd.DataF
     return left_portion, middle_portion, right_portion
 
 
+@utility.deprecated
 def build_portion_delaunay(portion: pd.DataFrame) -> [pv.core.pointset.PolyData, pv.core.pointset.PolyData]:
     """
     Builds upper and lower delaunay mesh of a femoral cartilage volume.
@@ -85,6 +86,7 @@ def build_portion_delaunay(portion: pd.DataFrame) -> [pv.core.pointset.PolyData,
     return outer_cloud.delaunay_2d(), inner_cloud.delaunay_2d()
 
 
+@utility.deprecated
 def combine_to_cloud(left_mesh: pv.core.pointset.PolyData, middle_mesh: pv.core.pointset.PolyData, right_mesh: pv.core.pointset.PolyData) -> pd.DataFrame:
     """
     Re-combines three parts of a split femoral vector volume into a single dataframe.

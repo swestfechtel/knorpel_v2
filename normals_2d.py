@@ -225,7 +225,7 @@ def calculate_femoral_thickness(max_vectors, min_vectors, normals, layer_index, 
             tmp = tuple([x_val, layer_index])
             label = utility.classify_femoral_point(tmp, left_regions, right_regions, split_vector)
             # calculate distance between the two vectors
-            vec_dist = utility.vector_distance(x, y) * sitk_image.GetSpacing()[2]
+            vec_dist = utility.vector_distance(x, y) * sitk_image.GetSpacing()[1]
             if not vec_dist > 0:
                 raise ValueError
 
@@ -321,7 +321,7 @@ def calculate_tibial_thickness(max_vectors, min_vectors, normals, layer_index, l
             label = utility.classify_tibial_point(tmp, left_regions, right_regions, split_vector)
 
             # calculate distance between the two vectors
-            vec_dist = utility.vector_distance(x, y) * sitk_image.GetSpacing()[2]
+            vec_dist = utility.vector_distance(x, y) * sitk_image.GetSpacing()[1]
             if not vec_dist > 0:
                 raise ValueError
 

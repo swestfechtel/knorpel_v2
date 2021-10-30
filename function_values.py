@@ -78,7 +78,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                 for i, val in enumerate(x):
                     label = utility.classify_femoral_point(
                         np.array([xs[layer_index], val]), left_landmarks, left=True)
-                    layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * sitk_image.GetSpacing()[2]
+                    layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * sitk_image.GetSpacing()[1]
 
                 keys = set(layer_thickness.keys())
                 for key in keys:
@@ -92,7 +92,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                 for i, val in enumerate(x):
                     label = utility.classify_femoral_point(
                         np.array([xs[layer_index], val]), right_landmarks, left=False)
-                    layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * sitk_image.GetSpacing()[2]
+                    layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * sitk_image.GetSpacing()[1]
 
                 keys = set(layer_thickness.keys())
                 for key in keys:
@@ -101,7 +101,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
         elif not cwbz and not tibia:
             layer_thickness[label] = np.zeros(len(x))
             for i, val in enumerate(x):
-                layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * sitk_image.GetSpacing()[2]
+                layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * sitk_image.GetSpacing()[1]
 
             keys = set(layer_thickness.keys())
             for key in keys:
@@ -118,7 +118,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                 for i, val in enumerate(x):
                     label = utility.classify_tibial_point(np.array(
                         [xs[layer_index], val]), left_landmarks, right_landmarks, split_vector)
-                    layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * sitk_image.GetSpacing()[2]
+                    layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * sitk_image.GetSpacing()[1]
 
                 keys = set(layer_thickness.keys())
                 for key in keys:
@@ -135,7 +135,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                 for i, val in enumerate(x):
                     label = utility.classify_tibial_point(np.array(
                         [xs[layer_index], val]), left_landmarks, right_landmarks, split_vector)
-                    layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * sitk_image.GetSpacing()[2]
+                    layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * sitk_image.GetSpacing()[1]
 
                 keys = set(layer_thickness.keys())
                 for key in keys:
@@ -222,11 +222,9 @@ def function_for_pool(directory):
     left_plate, right_plate = utility.split_into_plates(
         tibial_vectors, [0, np.mean(y)])
 
-    x, y, z, xy = utility.get_xyz(left_plate)
-    ldf = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
+    ldf = pd.DataFrame(data=left_plate, columns=['x', 'y', 'z'])
 
-    x, y, z, xy = utility.get_xyz(right_plate)
-    rdf = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
+    rdf = pd.DataFrame(data=right_plate, columns=['x', 'y', 'z'])
 
     try:
         xs, layers = function_normals.build_cwbz_layers(ldf)

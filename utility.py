@@ -4,6 +4,8 @@ import string
 import traceback
 import logging
 import inspect
+import warnings
+import functools
 
 import numpy as np
 import SimpleITK as sitk
@@ -16,6 +18,21 @@ from collections import defaultdict
 from scipy import stats
 
 
+def deprecated(func):
+    """This is a decorator which can be used to mark functions
+    as deprecated. It will result in a warning being emitted
+    when the function is used."""
+    @functools.wraps(func)
+    def new_func(*args, **kwargs):
+        warnings.simplefilter('always', DeprecationWarning)  # turn off filter
+        warnings.warn("Call to deprecated function {}.".format(func.__name__),
+                      category=DeprecationWarning,
+                      stacklevel=2)
+        warnings.simplefilter('default', DeprecationWarning)  # reset filter
+        return func(*args, **kwargs)
+    return new_func
+
+
 def get_subdirs(chunk):
     return [f.name for f in os.scandir('/images/Shape/Medical/Knees/OAI/Manual_Segmentations/') if f.is_dir() and f.name in chunk]
 
@@ -26,6 +43,7 @@ def get_subdirs(chunk):
 """
 
 
+@deprecated
 def get_x_y(array: list):
     """
     Extracts x and y values from an array [[x1, y1], [x2, y2], ...] sorted by x.
@@ -359,12 +377,11 @@ def build_3d_cartilage_array(image, color_code=3) -> np.array:
     cartilage = cartilage[cartilage != 0]
     return np.array([list(element) for element in cartilage])
     """
-    return np.argwhere(image==color_code)[:,[1,0,2]]
+    return np.argwhere(image==color_code)[:,[2,0,1]]
 
 
 def extract_central_weightbearing_zone(femoral_cartilage, tibial_cartilage):
-    x, y, z, xy = get_xyz(tibial_cartilage)
-    df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
+    df = pd.DataFrame(data=tibial_cartilage, columns=['x', 'y', 'z'])
     max_z = df.groupby(['x', 'y']).max()
 
     tmp1 = [np.array(item) for item in max_z.index]
@@ -389,8 +406,7 @@ def extract_central_weightbearing_zone(femoral_cartilage, tibial_cartilage):
     tdfl = tdfl.loc[tdfl['x'] < max(np.array(dd['cLT'])[:,0])].loc[tdfl['x'] > min(np.array(dd['cLT'])[:,0])]    
 
     # pack the femoral cartilage into a dataframe and split into two plates
-    x, y, z, xy = get_xyz(femoral_cartilage)
-    df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
+    df = pd.DataFrame(data=femoral_cartilage, columns=['x', 'y', 'z'])
     fdfl = df.loc[df['y'] < df['y'].mean()]
     fdfr = df.loc[df['y'] >= df['y'].mean()]
 
@@ -416,8 +432,7 @@ def extract_central_weightbearing_zone(femoral_cartilage, tibial_cartilage):
 
 
 def extract_anterior_posterior_zones(femoral_cartilage, cwbzl, cwbzr):
-    x, y, z, xy = get_xyz(femoral_cartilage)
-    df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
+    df = pd.DataFrame(data=femoral_cartilage, columns=['x', 'y', 'z'])
 
     left_plate = df.loc[df['y'] < df['y'].mean()]
     right_plate = df.loc[df['y'] >= df['y'].mean()]
@@ -451,8 +466,7 @@ def build_tibial_meshes(vectors: list) -> [pv.core.pointset.PolyData, pv.core.po
     :param vectors: An array of three-dimensional vectors (x, y, z) making up the cartilage volume
     :return: A lower and upper mesh, by z coordinate
     """
-    x, y, z, xy = get_xyz(vectors)
-    df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])  # swap x and z
+    df = pd.DataFrame(data=vectors, columns=['x', 'y', 'z'])
     max_z = df.groupby(['x', 'y']).max()
     min_z = df.groupby(['x', 'y']).min()
 
@@ -596,7 +610,7 @@ def calculate_distance(lower_normals, lower_mesh, upper_mesh, sitk_image, left_l
         v0 = v - vec
         v1 = v + vec
         iv, ic = upper_mesh.ray_trace(v0, v1, first_point=True)
-        dist = np.sqrt(np.sum((iv - v) ** 2)) * sitk_image.GetSpacing()[2]
+        dist = np.sqrt(np.sum((iv - v) ** 2)) * sitk_image.GetSpacing()[1]
         lower_normals['distances'][i] = dist
         if not femur:
             label = classify_tibial_point(v[:2], left_landmarks, right_landmarks, split_vector)
@@ -616,7 +630,7 @@ def calculate_femoral_thickness(lower_normals, lower_mesh, upper_mesh, sitk_imag
         v0 = v - vec
         v1 = v + vec
         iv, ic = upper_mesh.ray_trace(v0, v1, first_point=True)
-        dist = np.sqrt(np.sum((iv - v) ** 2)) * sitk_image.GetSpacing()[2]
+        dist = np.sqrt(np.sum((iv - v) ** 2)) * sitk_image.GetSpacing()[1]
         lower_normals['distances'][i] = dist
         label = classify_femoral_point(v[:2], landmarks, left)
 
@@ -633,12 +647,13 @@ def calculate_distance_without_classification(lower_normals, lower_mesh, upper_m
         v0 = v - vec
         v1 = v + vec
         iv, ic = upper_mesh.ray_trace(v0, v1, first_point=True)
-        dist = np.sqrt(np.sum((iv - v) ** 2)) * sitk_image.GetSpacing()[2]
+        dist = np.sqrt(np.sum((iv - v) ** 2)) * sitk_image.GetSpacing()[1]
         lower_normals['distances'][i] = dist 
 
     return lower_normals
 
 
+@deprecated
 def isolate_cartilage(layer: np.array, color_code: int = 3) -> np.array:
     """
     Crops a single layer to only include x, y ranges where cartilage is present.
@@ -653,6 +668,7 @@ def isolate_cartilage(layer: np.array, color_code: int = 3) -> np.array:
     return cartilage[np.any(cartilage == color_code, axis=1), :]
 
 
+@deprecated
 def build_array(layer: np.array, isolate: bool = False, isolator: int = 3) -> list:
     """
     Builds an array for a single layer.

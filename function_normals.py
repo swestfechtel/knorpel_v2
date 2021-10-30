@@ -182,7 +182,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                     label = utility.classify_femoral_point(
                         np.array([xs[layer_index], point[0][0]]), left_landmarks, left=True)
                     layer_thickness[label][i] = utility.vector_distance(
-                        point[0], point[1]) * sitk_image.GetSpacing()[2]
+                        point[0], point[1]) * sitk_image.GetSpacing()[1]
 
                 keys = set(layer_thickness.keys())
                 for key in keys:
@@ -197,7 +197,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                     label = utility.classify_femoral_point(
                         np.array([xs[layer_index], point[0][0]]), right_landmarks, left=False)
                     layer_thickness[label][i] = utility.vector_distance(
-                        point[0], point[1]) * sitk_image.GetSpacing()[2]
+                        point[0], point[1]) * sitk_image.GetSpacing()[1]
 
                 keys = set(layer_thickness.keys())
                 for key in keys:
@@ -207,7 +207,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
             layer_thickness[label] = np.zeros(len(outline_points))
             for i, point in enumerate(outline_points):
                 layer_thickness[label][i] = utility.vector_distance(
-                    point[0], point[1]) * sitk_image.GetSpacing()[2]
+                    point[0], point[1]) * sitk_image.GetSpacing()[1]
 
             keys = set(layer_thickness.keys())
             for key in keys:
@@ -225,7 +225,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                     label = utility.classify_tibial_point(np.array(
                         [xs[layer_index], point[0][0]]), left_landmarks, right_landmarks, split_vector)
                     layer_thickness[label][i] = utility.vector_distance(
-                        point[0], point[1]) * sitk_image.GetSpacing()[2]
+                        point[0], point[1]) * sitk_image.GetSpacing()[1]
 
                 keys = set(layer_thickness.keys())
                 for key in keys:
@@ -242,7 +242,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                     label = utility.classify_tibial_point(np.array(
                         [xs[layer_index], point[0][0]]), left_landmarks, right_landmarks, split_vector)
                     layer_thickness[label][i] = utility.vector_distance(
-                        point[0], point[1]) * sitk_image.GetSpacing()[2]
+                        point[0], point[1]) * sitk_image.GetSpacing()[1]
 
                 keys = set(layer_thickness.keys())
                 for key in keys:
@@ -335,11 +335,9 @@ def function_for_pool(directory):
     left_plate, right_plate = utility.split_into_plates(
         tibial_vectors, [0, np.mean(y)])
 
-    x, y, z, xy = utility.get_xyz(left_plate)
-    ldf = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
+    ldf = pd.DataFrame(data=left_plate, columns=['x', 'y', 'z'])
 
-    x, y, z, xy = utility.get_xyz(right_plate)
-    rdf = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
+    rdf = pd.DataFrame(data=right_plate, columns=['x', 'y', 'z'])
 
     try:
         t = time()

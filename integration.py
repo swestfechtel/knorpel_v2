@@ -79,12 +79,12 @@ def function_for_pool(directory):
         # total_femoral_thickness += res
         for j in range(min(x), max(x)):
             label = utility.classify_femoral_point([j, i], left_femoral_regions, right_femoral_regions, femoral_split_vector)
-            dist = (upper_fun(j) - lower_fun(j)) * sitk_image.GetSpacing()[2]
+            dist = (upper_fun(j) - lower_fun(j)) * sitk_image.GetSpacing()[1]
             femoral_thickness[label] = np.append(femoral_thickness[label], dist)
 
         # num_it += 1
 
-    # mean_femoral_thickness = (total_femoral_thickness / num_it) * sitk_image.GetSpacing()[2]
+    # mean_femoral_thickness = (total_femoral_thickness / num_it) * sitk_image.GetSpacing()[1]
     keys = set(femoral_thickness.keys())
     for key in keys:
         value = femoral_thickness[key]
@@ -131,7 +131,7 @@ def function_for_pool(directory):
         # num_it += 1
         for j in range(min(x), max(x)):
             label = utility.classify_tibial_point([j, i], left_tibial_regions, right_tibial_regions, tibial_split_vector)
-            dist = (upper_fun(j) - lower_fun(j)) * sitk_image.GetSpacing()[2]
+            dist = (upper_fun(j) - lower_fun(j)) * sitk_image.GetSpacing()[1]
             tibial_thickness[label] = np.append(tibial_thickness[label], dist)
 
     keys = set(tibial_thickness.keys())
@@ -144,7 +144,7 @@ def function_for_pool(directory):
         tibial_thickness[key + '.aMiv'] = np.nanmean(np.sort(value)[:math.ceil(len(value) * 0.01)])
         tibial_thickness[key] = np.nanmean(value)
 
-    # mean_tibial_thickness = (total_tibial_thickness / num_it) * sitk_image.GetSpacing()[2]
+    # mean_tibial_thickness = (total_tibial_thickness / num_it) * sitk_image.GetSpacing()[1]
 
     # return {'dir': directory, 'fem': mean_femoral_thickness, 'tib': mean_tibial_thickness}
     return {**{'dir': directory}, **femoral_thickness, **tibial_thickness}

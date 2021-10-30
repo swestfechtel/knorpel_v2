@@ -147,7 +147,7 @@ def fun(directory):
     for i in range(len(outer_points)):
         label = utility.classify_femoral_point(outer_points[i][:2], left_landmarks, right_landmarks, split_vector)
         femoral_thickness[label][i] = utility.vector_distance(outer_points[i], inner_points[i]) * \
-                                      sitk_image.GetSpacing()[2]
+                                      sitk_image.GetSpacing()[1]
 
     keys = set(femoral_thickness.keys())
     for key in keys:
@@ -213,7 +213,7 @@ def fun(directory):
 
     for i in range(len(outer_points)):
         label = utility.classify_femoral_point(outer_points[i][:2], left_landmarks, left=True)
-        left_thickness[label][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[2]
+        left_thickness[label][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[1]
 
     with Pool() as pool:
         res = pool.starmap(partial(vector_trace, df=cwbzr), iterable=sphere_right_iter)
@@ -231,7 +231,7 @@ def fun(directory):
 
     for i in range(len(outer_points)):
         label = utility.classify_femoral_point(outer_points[i][:2], right_landmarks, left=False)
-        right_thickness[label][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[2]
+        right_thickness[label][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[1]
 
     femoral_thickness = dict()
     femoral_thickness.update(left_thickness)
@@ -296,7 +296,7 @@ def fun(directory):
     femoral_thickness['pLF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
-        femoral_thickness['pLF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[2]
+        femoral_thickness['pLF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[1]
 
     with Pool() as pool:
         res = pool.starmap(partial(vector_trace, df=rpdf), iterable=sphere_rp_iter)
@@ -310,7 +310,7 @@ def fun(directory):
     femoral_thickness['pMF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
-        femoral_thickness['pMF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[2]
+        femoral_thickness['pMF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[1]
 
     with Pool() as pool:
         res = pool.starmap(partial(vector_trace, df=adf), iterable=sphere_a_iter)
@@ -324,7 +324,7 @@ def fun(directory):
     femoral_thickness['aF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
-        femoral_thickness['aF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[2]
+        femoral_thickness['aF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[1]
 
     keys = set(femoral_thickness.keys())
     for key in keys:
@@ -341,8 +341,7 @@ def fun(directory):
     split_vector = cluster.cluster_centers_[0]
     left_plate, right_plate = utility.split_into_plates(tibial_vectors, split_vector)
 
-    x, y, z, xy = utility.get_xyz(left_plate)
-    ldf = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
+    ldf = pd.DataFrame(data=left_plate, columns=['x', 'y', 'z'])
     center = np.array([ldf.x.min() + (ldf.x.max() - ldf.x.min()) / 2,
                        ldf.y.min() + (ldf.y.max() - ldf.y.min()) / 2,
                        ldf.z.max() * 1.25])
@@ -385,10 +384,9 @@ def fun(directory):
     for i in range(len(outer_points)):
         label = utility.classify_tibial_point(outer_points[i][:2], left_landmarks, right_landmarks, split_vector)
         tibial_thickness[label][i] = utility.vector_distance(outer_points[i], inner_points[i]) * \
-                                      sitk_image.GetSpacing()[2]
+                                      sitk_image.GetSpacing()[1]
 
-    x, y, z, xy = utility.get_xyz(right_plate)
-    rdf = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
+    rdf = pd.DataFrame(data=right_plate, columns=['x', 'y', 'z'])
     center = np.array([rdf.x.min() + (rdf.x.max() - rdf.x.min()) / 2,
                        rdf.y.min() + (rdf.y.max() - rdf.y.min()) / 2,
                        rdf.z.max() * 1.25])
@@ -418,7 +416,7 @@ def fun(directory):
     for i in range(len(outer_points)):
         label = utility.classify_tibial_point(outer_points[i][:2], left_landmarks, right_landmarks, split_vector)
         tibial_thickness[label][i] = utility.vector_distance(outer_points[i], inner_points[i]) * \
-                                      sitk_image.GetSpacing()[2]
+                                      sitk_image.GetSpacing()[1]
 
     keys = set(tibial_thickness.keys())
     for key in keys:
