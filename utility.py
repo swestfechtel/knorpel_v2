@@ -1,27 +1,24 @@
+import functools
 import math
 import os
 import string
 import traceback
-import logging
-import inspect
 import warnings
-import functools
-
-import numpy as np
-import SimpleITK as sitk
-import pyvista as pv
-import pandas as pd
-import nibabel as nb
-
-from sklearn.cluster import KMeans
 from collections import defaultdict
+
+import SimpleITK as sitk
+import numpy as np
+import pandas as pd
+import pyvista as pv
 from scipy import stats
+from sklearn.cluster import KMeans
 
 
 def deprecated(func):
     """This is a decorator which can be used to mark functions
     as deprecated. It will result in a warning being emitted
     when the function is used."""
+
     @functools.wraps(func)
     def new_func(*args, **kwargs):
         warnings.simplefilter('always', DeprecationWarning)  # turn off filter
@@ -30,11 +27,13 @@ def deprecated(func):
                       stacklevel=2)
         warnings.simplefilter('default', DeprecationWarning)  # reset filter
         return func(*args, **kwargs)
+
     return new_func
 
 
 def get_subdirs(chunk):
-    return [f.name for f in os.scandir('/images/Shape/Medical/Knees/OAI/Manual_Segmentations/') if f.is_dir() and f.name in chunk]
+    return [f.name for f in os.scandir('/images/Shape/Medical/Knees/OAI/Manual_Segmentations/') if
+            f.is_dir() and f.name in chunk]
 
 
 """
@@ -74,7 +73,7 @@ def vector_distance(x: np.array, y: np.array) -> float:
     :return: the distance between x and y
     """
     tmp = x - y
-    return math.sqrt(sum([item**2 for item in tmp]))
+    return math.sqrt(sum([item ** 2 for item in tmp]))
 
 
 def split_into_plates(vectors, split_vector) -> [list, list]:
@@ -272,6 +271,7 @@ def classify_tibial_point(vector, left_regions, right_regions, split_vector) -> 
             else:
                 return 'eMT'
 
+
 """
 def classify_femoral_point(vector, left_regions, right_regions, split_vector) -> string:
     ""
@@ -301,6 +301,8 @@ def classify_femoral_point(vector, left_regions, right_regions, split_vector) ->
         else:
             return 'ecMF'
 """
+
+
 def classify_femoral_point(vector, landmarks, left=True):
     first_split, second_split = landmarks
     if left:
@@ -362,6 +364,8 @@ def build_3d_cartilage_array(image, color_code=3) -> np.array:
     tmp = tmp[tmp != 0]
     return tmp
 """
+
+
 def build_3d_cartilage_array(image, color_code=3) -> np.array:
     """
     cartilage = [0] * (image.shape[0] * image.shape[1] * image.shape[2])
@@ -377,7 +381,7 @@ def build_3d_cartilage_array(image, color_code=3) -> np.array:
     cartilage = cartilage[cartilage != 0]
     return np.array([list(element) for element in cartilage])
     """
-    return np.argwhere(image==color_code)[:,[2,0,1]]
+    return np.argwhere(image == color_code)[:, [2, 0, 1]]
 
 
 def extract_central_weightbearing_zone(femoral_cartilage, tibial_cartilage):
@@ -400,10 +404,10 @@ def extract_central_weightbearing_zone(femoral_cartilage, tibial_cartilage):
     wbr = np.vstack((np.array(dd['iMT']), np.array(dd['cMT']), np.array(dd['eMT'])))
 
     # pack them into a dataframe and cut the dimensions along the x axis to the min, max x expansion of the respective central subregion
-    tdfr = pd.DataFrame(data={'x': wbr[:,0], 'y': wbr[:,1], 'z': wbr[:,2]})
-    tdfl = pd.DataFrame(data={'x': wbl[:,0], 'y': wbl[:,1], 'z': wbl[:,2]})
-    tdfr = tdfr.loc[tdfr['x'] < max(np.array(dd['cMT'])[:,0])].loc[tdfr['x'] > min(np.array(dd['cMT'])[:,0])]
-    tdfl = tdfl.loc[tdfl['x'] < max(np.array(dd['cLT'])[:,0])].loc[tdfl['x'] > min(np.array(dd['cLT'])[:,0])]    
+    tdfr = pd.DataFrame(data={'x': wbr[:, 0], 'y': wbr[:, 1], 'z': wbr[:, 2]})
+    tdfl = pd.DataFrame(data={'x': wbl[:, 0], 'y': wbl[:, 1], 'z': wbl[:, 2]})
+    tdfr = tdfr.loc[tdfr['x'] < max(np.array(dd['cMT'])[:, 0])].loc[tdfr['x'] > min(np.array(dd['cMT'])[:, 0])]
+    tdfl = tdfl.loc[tdfl['x'] < max(np.array(dd['cLT'])[:, 0])].loc[tdfl['x'] > min(np.array(dd['cLT'])[:, 0])]
 
     # pack the femoral cartilage into a dataframe and split into two plates
     df = pd.DataFrame(data=femoral_cartilage, columns=['x', 'y', 'z'])
@@ -446,6 +450,25 @@ def extract_anterior_posterior_zones(femoral_cartilage, cwbzl, cwbzr):
 
     return lpdf, rpdf, adf
     # return lpdf, rpdf, ladf, radf
+
+
+def split_anterior_part(adf):
+    a_lower_mesh, a_upper_mesh = build_tibial_meshes(adf.to_numpy())
+    df = pd.DataFrame(a_upper_mesh.points, columns=['x', 'y', 'z'])
+
+    tmp = df.groupby(by='x').min().reset_index()[['x', 'z']]
+    indices = []
+    for index, row in tmp.iterrows():
+        if (a := df.loc[df['x'] == row['x']].loc[df['z'] == row['z']]).shape[0] > 0:
+            indices.append(list(a.index))
+
+    indices = np.hstack((indices))
+    valley = df.iloc[indices]
+    valley = valley[np.abs(stats.zscore(valley['y'])) < 1]
+    left_part = adf.loc[adf['y'] < valley['y'].median()]
+    right_part = adf.loc[df['y'] > valley['y'].median()]
+
+    return left_part, right_part
 
 
 def get_xyz(regions):
@@ -554,6 +577,7 @@ def tibial_landmarks(vectors) -> [list, list, np.ndarray]:
 
     return left_tibial_landmarks, right_tibial_landmarks, split_vector
 
+
 """
 def femoral_landmarks(vectors) -> [list, list, np.ndarray]:
     ""
@@ -579,12 +603,15 @@ def femoral_landmarks(vectors) -> [list, list, np.ndarray]:
 
     return left_femoral_landmarks, right_femoral_landmarks, split_vector
 """
+
+
 def femoral_landmarks(vectors):
     first_split, second_split = get_femoral_thirds(vectors)
     return [first_split, second_split]
 
 
-def calculate_distance(lower_normals, lower_mesh, upper_mesh, sitk_image, left_landmarks, right_landmarks, split_vector, dictionary, femur=False):
+def calculate_distance(lower_normals, lower_mesh, upper_mesh, sitk_image, left_landmarks, right_landmarks, split_vector,
+                       dictionary, femur=False):
     """
     Calculates the distances between an upper and lower delaunay mesh using ray tracing.
 
@@ -648,7 +675,7 @@ def calculate_distance_without_classification(lower_normals, lower_mesh, upper_m
         v1 = v + vec
         iv, ic = upper_mesh.ray_trace(v0, v1, first_point=True)
         dist = np.sqrt(np.sum((iv - v) ** 2)) * sitk_image.GetSpacing()[1]
-        lower_normals['distances'][i] = dist 
+        lower_normals['distances'][i] = dist
 
     return lower_normals
 

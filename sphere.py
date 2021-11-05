@@ -1,18 +1,17 @@
 import logging
+import math
 import sys
 import traceback
-import utility
-import os
-import math
+from functools import partial
+from multiprocessing import Pool
+from time import time
 
 import numpy as np
 import pandas as pd
 import pyvista as pv
-
-from multiprocessing import Pool
-from functools import partial
-from time import time
 from sklearn.cluster import KMeans
+
+import utility
 
 
 def vector_trace(sphere_points, sphere_normals, df):
@@ -53,7 +52,8 @@ def vector_trace(sphere_points, sphere_normals, df):
 
     while True:
         g = P + alpha * V
-        points = local_df.loc[abs(local_df['x'] - g[0]) <= 2].loc[abs(local_df['y'] - g[1]) <= 2].loc[abs(local_df['z'] - g[2]) <= 2]
+        points = local_df.loc[abs(local_df['x'] - g[0]) <= 2].loc[abs(local_df['y'] - g[1]) <= 2].loc[
+            abs(local_df['z'] - g[2]) <= 2]
         if points.shape[0] > 0:
             break
 
@@ -70,7 +70,8 @@ def vector_trace(sphere_points, sphere_normals, df):
 
     while True:
         g = P + alpha * V
-        points = local_df.loc[abs(local_df['x'] - g[0]) <= 2].loc[abs(local_df['y'] - g[1]) <= 2].loc[abs(local_df['z'] - g[2]) <= 2]
+        points = local_df.loc[abs(local_df['x'] - g[0]) <= 2].loc[abs(local_df['y'] - g[1]) <= 2].loc[
+            abs(local_df['z'] - g[2]) <= 2]
         if points.shape[0] == 0:
             break
 
@@ -106,7 +107,7 @@ def fun(directory):
 
     femoral_vectors = [list(element) for element in femoral_cartilage]
     tibial_vectors = [list(element) for element in tibial_cartilage]
-    
+
     """
     x, y, z, xy = utility.get_xyz(femoral_vectors)
     df = pd.DataFrame(data={'x': z, 'y': y, 'z': x}, columns=['x', 'y', 'z'])
@@ -161,12 +162,12 @@ def fun(directory):
     """
     cwbzl, cwbzr = utility.extract_central_weightbearing_zone(femoral_vectors, tibial_vectors)
     center_left = np.array([cwbzl.x.min() + (cwbzl.x.max() - cwbzl.x.min()) / 2,
-                        cwbzl.y.min() + (cwbzl.y.max() - cwbzl.y.min()) / 2,
-                        cwbzl.z.min() - (cwbzl.z.max() - cwbzl.z.min()) / 4])
+                            cwbzl.y.min() + (cwbzl.y.max() - cwbzl.y.min()) / 2,
+                            cwbzl.z.min() - (cwbzl.z.max() - cwbzl.z.min()) / 4])
 
     center_right = np.array([cwbzr.x.min() + (cwbzr.x.max() - cwbzr.x.min()) / 2,
-                        cwbzr.y.min() + (cwbzr.y.max() - cwbzr.y.min()) / 2,
-                        cwbzr.z.min() - (cwbzr.z.max() - cwbzr.z.min()) / 4])
+                             cwbzr.y.min() + (cwbzr.y.max() - cwbzr.y.min()) / 2,
+                             cwbzr.z.min() - (cwbzr.z.max() - cwbzr.z.min()) / 4])
 
     lower_mesh_left, upper_mesh_left = utility.build_femoral_meshes(cwbzl)
     lower_mesh_right, upper_mesh_right = utility.build_femoral_meshes(cwbzr)
@@ -190,12 +191,12 @@ def fun(directory):
     sphere_right_iter = np.array([[np.nan, np.nan]] * sphere_right.n_points, dtype='object')
 
     for i in range(sphere_left.n_points):
-        sphere_left_iter[i,0] = tuple(sphere_left.points[i])
-        sphere_left_iter[i,1] = tuple(sphere_left['Normals'][i])
+        sphere_left_iter[i, 0] = tuple(sphere_left.points[i])
+        sphere_left_iter[i, 1] = tuple(sphere_left['Normals'][i])
 
     for i in range(sphere_right.n_points):
-        sphere_right_iter[i,0] = tuple(sphere_right.points[i])
-        sphere_right_iter[i,1] = tuple(sphere_right['Normals'][i])
+        sphere_right_iter[i, 0] = tuple(sphere_right.points[i])
+        sphere_right_iter[i, 1] = tuple(sphere_right['Normals'][i])
 
     with Pool() as pool:
         res = pool.starmap(partial(vector_trace, df=cwbzl), iterable=sphere_left_iter)
@@ -213,11 +214,12 @@ def fun(directory):
 
     for i in range(len(outer_points)):
         label = utility.classify_femoral_point(outer_points[i][:2], left_landmarks, left=True)
-        left_thickness[label][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[1]
+        left_thickness[label][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[
+            1]
 
     with Pool() as pool:
         res = pool.starmap(partial(vector_trace, df=cwbzr), iterable=sphere_right_iter)
-        
+
     res = np.array(res, dtype='object')
     res = res[res != None]
 
@@ -231,29 +233,36 @@ def fun(directory):
 
     for i in range(len(outer_points)):
         label = utility.classify_femoral_point(outer_points[i][:2], right_landmarks, left=False)
-        right_thickness[label][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[1]
+        right_thickness[label][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[
+            1]
 
     femoral_thickness = dict()
     femoral_thickness.update(left_thickness)
     femoral_thickness.update(right_thickness)
 
     lpdf, rpdf, adf = utility.extract_anterior_posterior_zones(femoral_vectors, cwbzl, cwbzr)
+    ladf, radf = utility.split_anterior_part(adf)
 
     center_lp = np.array([lpdf.x.min() + (lpdf.x.max() - lpdf.x.min()) / 4,
-                    lpdf.y.min() + (lpdf.y.max() - lpdf.y.min()) / 2,
-                    lpdf.z.min() + (lpdf.z.max() - lpdf.z.min()) / 2])
+                          lpdf.y.min() + (lpdf.y.max() - lpdf.y.min()) / 2,
+                          lpdf.z.min() + (lpdf.z.max() - lpdf.z.min()) / 2])
 
     center_rp = np.array([rpdf.x.min() + (rpdf.x.max() - rpdf.x.min()) / 4,
-                        rpdf.y.min() + (rpdf.y.max() - rpdf.y.min()) / 2,
-                        rpdf.z.min() + (rpdf.z.max() - rpdf.z.min()) / 2])
+                          rpdf.y.min() + (rpdf.y.max() - rpdf.y.min()) / 2,
+                          rpdf.z.min() + (rpdf.z.max() - rpdf.z.min()) / 2])
 
-    center_a = np.array([adf.x.min() + ((adf.x.max() - adf.x.min()) / 4) * 3,
-                        adf.y.min() + (adf.y.max() - adf.y.min()) / 2,
-                        adf.z.min() + (adf.z.max() - adf.z.min()) / 4])
+    center_la = np.array([ladf.x.min() + ((ladf.x.max() - ladf.x.min()) / 4) * 3,
+                          ladf.y.min() + (ladf.y.max() - ladf.y.min()) / 2,
+                          ladf.z.min() + (ladf.z.max() - ladf.z.min()) / 4])
+
+    center_ra = np.array([radf.x.min() + ((radf.x.max() - radf.x.min()) / 4) * 3,
+                          radf.y.min() + (radf.y.max() - radf.y.min()) / 2,
+                          radf.z.min() + (radf.z.max() - radf.z.min()) / 4])
 
     sphere_lp = pv.Sphere(center=center_lp, radius=1, theta_resolution=60, phi_resolution=60)
     sphere_rp = pv.Sphere(center=center_rp, radius=1, theta_resolution=60, phi_resolution=60)
-    sphere_a = pv.Sphere(center=center_a, radius=1, theta_resolution=60, phi_resolution=60)
+    sphere_la = pv.Sphere(center=center_la, radius=1, theta_resolution=60, phi_resolution=60)
+    sphere_ra = pv.Sphere(center=center_ra, radius=1, theta_resolution=60, phi_resolution=60)
 
     lpdf['dist'] = np.zeros(lpdf.shape[0])
     lpdf['dist'] = lpdf.apply(lambda l: utility.vector_distance([l.x, l.y, l.z], center_lp), axis=1)
@@ -261,32 +270,41 @@ def fun(directory):
     rpdf['dist'] = np.zeros(rpdf.shape[0])
     rpdf['dist'] = rpdf.apply(lambda l: utility.vector_distance([l.x, l.y, l.z], center_rp), axis=1)
 
-    adf['dist'] = np.zeros(adf.shape[0])
-    adf['dist'] = adf.apply(lambda l: utility.vector_distance([l.x, l.y, l.z], center_a), axis=1)
+    ladf['dist'] = np.zeros(ladf.shape[0])
+    ladf['dist'] = ladf.apply(lambda l: utility.vector_distance([l.x, l.y, l.z], center_la), axis=1)
+
+    radf['dist'] = np.zeros(radf.shape[0])
+    radf['dist'] = radf.apply(lambda l: utility.vector_distance([l.x, l.y, l.z], center_ra), axis=1)
 
     sphere_lp.compute_normals(point_normals=True, cell_normals=False, inplace=True)
     sphere_rp.compute_normals(point_normals=True, cell_normals=False, inplace=True)
-    sphere_a.compute_normals(point_normals=True, cell_normals=False, inplace=True)
+    sphere_la.compute_normals(point_normals=True, cell_normals=False, inplace=True)
+    sphere_ra.compute_normals(point_normals=True, cell_normals=False, inplace=True)
 
     sphere_lp_iter = np.array([[np.nan, np.nan]] * sphere_lp.n_points, dtype='object')
     sphere_rp_iter = np.array([[np.nan, np.nan]] * sphere_rp.n_points, dtype='object')
-    sphere_a_iter = np.array([[np.nan, np.nan]] * sphere_a.n_points, dtype='object')
+    sphere_la_iter = np.array([[np.nan, np.nan]] * sphere_la.n_points, dtype='object')
+    sphere_ra_iter = np.array([[np.nan, np.nan]] * sphere_ra.n_points, dtype='object')
 
     for i in range(sphere_lp.n_points):
-        sphere_lp_iter[i,0] = tuple(sphere_lp.points[i])
-        sphere_lp_iter[i,1] = tuple(sphere_lp['Normals'][i])
+        sphere_lp_iter[i, 0] = tuple(sphere_lp.points[i])
+        sphere_lp_iter[i, 1] = tuple(sphere_lp['Normals'][i])
 
     for i in range(sphere_rp.n_points):
-        sphere_rp_iter[i,0] = tuple(sphere_rp.points[i])
-        sphere_rp_iter[i,1] = tuple(sphere_rp['Normals'][i])
+        sphere_rp_iter[i, 0] = tuple(sphere_rp.points[i])
+        sphere_rp_iter[i, 1] = tuple(sphere_rp['Normals'][i])
 
-    for i in range(sphere_a.n_points):
-        sphere_a_iter[i,0] = tuple(sphere_a.points[i])
-        sphere_a_iter[i,1] = tuple(sphere_a['Normals'][i])
+    for i in range(sphere_la.n_points):
+        sphere_la_iter[i, 0] = tuple(sphere_la.points[i])
+        sphere_la_iter[i, 1] = tuple(sphere_la['Normals'][i])
+
+    for i in range(sphere_ra.n_points):
+        sphere_ra_iter[i, 0] = tuple(sphere_ra.points[i])
+        sphere_ra_iter[i, 1] = tuple(sphere_ra['Normals'][i])
 
     with Pool() as pool:
         res = pool.starmap(partial(vector_trace, df=lpdf), iterable=sphere_lp_iter)
-        
+
     res = np.array(res, dtype='object')
     res = res[res != None]
 
@@ -296,11 +314,12 @@ def fun(directory):
     femoral_thickness['pLF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
-        femoral_thickness['pLF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[1]
+        femoral_thickness['pLF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * \
+                                      sitk_image.GetSpacing()[1]
 
     with Pool() as pool:
         res = pool.starmap(partial(vector_trace, df=rpdf), iterable=sphere_rp_iter)
-        
+
     res = np.array(res, dtype='object')
     res = res[res != None]
 
@@ -310,21 +329,38 @@ def fun(directory):
     femoral_thickness['pMF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
-        femoral_thickness['pMF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[1]
+        femoral_thickness['pMF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * \
+                                      sitk_image.GetSpacing()[1]
 
     with Pool() as pool:
-        res = pool.starmap(partial(vector_trace, df=adf), iterable=sphere_a_iter)
-        
+        res = pool.starmap(partial(vector_trace, df=ladf), iterable=sphere_la_iter)
+
     res = np.array(res, dtype='object')
     res = res[res != None]
 
     inner_points = [item[0] for item in res]
     outer_points = [item[1] for item in res]
 
-    femoral_thickness['aF'] = np.zeros(len(outer_points))
+    femoral_thickness['aMF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
-        femoral_thickness['aF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * sitk_image.GetSpacing()[1]
+        femoral_thickness['aLF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * \
+                                      sitk_image.GetSpacing()[1]
+
+    with Pool() as pool:
+        res = pool.starmap(partial(vector_trace, df=radf), iterable=sphere_ra_iter)
+
+    res = np.array(res, dtype='object')
+    res = res[res != None]
+
+    inner_points = [item[0] for item in res]
+    outer_points = [item[1] for item in res]
+
+    femoral_thickness['aMF'] = np.zeros(len(outer_points))
+
+    for i in range(len(outer_points)):
+        femoral_thickness['aMF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * \
+                                      sitk_image.GetSpacing()[1]
 
     keys = set(femoral_thickness.keys())
     for key in keys:
@@ -345,7 +381,7 @@ def fun(directory):
     center = np.array([ldf.x.min() + (ldf.x.max() - ldf.x.min()) / 2,
                        ldf.y.min() + (ldf.y.max() - ldf.y.min()) / 2,
                        ldf.z.max() * 1.25])
-                       # df.z.min() + (df.z.max() - df.z.min()) / 2])
+    # df.z.min() + (df.z.max() - df.z.min()) / 2])
 
     # cloud = pv.PolyData(df.to_numpy())
     ldf['dist'] = np.zeros(ldf.shape[0])
@@ -384,13 +420,13 @@ def fun(directory):
     for i in range(len(outer_points)):
         label = utility.classify_tibial_point(outer_points[i][:2], left_landmarks, right_landmarks, split_vector)
         tibial_thickness[label][i] = utility.vector_distance(outer_points[i], inner_points[i]) * \
-                                      sitk_image.GetSpacing()[1]
+                                     sitk_image.GetSpacing()[1]
 
     rdf = pd.DataFrame(data=right_plate, columns=['x', 'y', 'z'])
     center = np.array([rdf.x.min() + (rdf.x.max() - rdf.x.min()) / 2,
                        rdf.y.min() + (rdf.y.max() - rdf.y.min()) / 2,
                        rdf.z.max() * 1.25])
-                       # df.z.min() + (df.z.max() - df.z.min()) / 2])
+    # df.z.min() + (df.z.max() - df.z.min()) / 2])
 
     # cloud = pv.PolyData(df.to_numpy())
     rdf['dist'] = np.zeros(rdf.shape[0])
@@ -416,7 +452,7 @@ def fun(directory):
     for i in range(len(outer_points)):
         label = utility.classify_tibial_point(outer_points[i][:2], left_landmarks, right_landmarks, split_vector)
         tibial_thickness[label][i] = utility.vector_distance(outer_points[i], inner_points[i]) * \
-                                      sitk_image.GetSpacing()[1]
+                                     sitk_image.GetSpacing()[1]
 
     keys = set(tibial_thickness.keys())
     for key in keys:
@@ -432,7 +468,8 @@ def fun(directory):
 
 
 def main():
-    logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/sphere/sphere_default.log', encoding='utf-8', level=logging.DEBUG, filemode='w')
+    logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/sphere/sphere_default.log', encoding='utf-8',
+                        level=logging.DEBUG, filemode='w')
     logging.debug('Entered main.')
 
     try:

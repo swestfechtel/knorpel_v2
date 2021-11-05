@@ -1,21 +1,20 @@
-import math
-import os
 import logging
-import traceback
+import math
 import sys
-import utility
+import traceback
+from concurrent.futures import TimeoutError
+from time import time
 
 import numpy as np
 import pandas as pd
 import pyvista as pv
-
-from scipy import stats
-from multiprocessing import Pool
 from pebble import ProcessPool
 from pebble.common import ProcessExpired
-from concurrent.futures import TimeoutError
-from time import time
-from collections import defaultdict
+from scipy import stats
+
+import utility
+
+
 # from __future__ import division
 
 
@@ -45,13 +44,13 @@ def split_femoral_volume(vectors: list) -> [pd.DataFrame, pd.DataFrame, pd.DataF
     zrange = df.groupby(by=['x'])['z'].max() - df.groupby(by=['x'])['z'].min()
     zmed = zrange.median()
     zindex = zrange.loc[zrange < zmed].index.to_numpy()
-    mask = np.abs(stats.zscore(zindex)) < 2 # filter out all values deviating more than 2 stds
+    mask = np.abs(stats.zscore(zindex)) < 2  # filter out all values deviating more than 2 stds
     lower_bound = zindex[mask].min()
     upper_bound = zindex[mask].max()
 
     right_portion = df.loc[df['x'] < lower_bound]
     right_portion = right_portion[['z', 'y', 'x', 'dist_to_cog']]
-    right_portion.columns = ['x', 'y', 'z', 'dist_to_cog'] # swap x and z again because pyvista is weird
+    right_portion.columns = ['x', 'y', 'z', 'dist_to_cog']  # swap x and z again because pyvista is weird
 
     middle_portion = df.loc[df['x'] > lower_bound].loc[df['x'] < upper_bound]
 
@@ -87,7 +86,8 @@ def build_portion_delaunay(portion: pd.DataFrame) -> [pv.core.pointset.PolyData,
 
 
 @utility.deprecated
-def combine_to_cloud(left_mesh: pv.core.pointset.PolyData, middle_mesh: pv.core.pointset.PolyData, right_mesh: pv.core.pointset.PolyData) -> pd.DataFrame:
+def combine_to_cloud(left_mesh: pv.core.pointset.PolyData, middle_mesh: pv.core.pointset.PolyData,
+                     right_mesh: pv.core.pointset.PolyData) -> pd.DataFrame:
     """
     Re-combines three parts of a split femoral vector volume into a single dataframe.
 
@@ -142,10 +142,10 @@ def function_for_pool(directory):
         lower_mesh, upper_mesh = utility.build_tibial_meshes(tibial_vectors)
     except Exception:
         logging.error(traceback.format_exc())
-        logging.warning(f'Got delaunay error for file {directory} while trying to build tibial meshes. Return empty dict.')
+        logging.warning(
+            f'Got delaunay error for file {directory} while trying to build tibial meshes. Return empty dict.')
         # return {**{'dir': directory}, **{}, **{}}
         return dict()
-
 
     # determine landmarks for tibial plates for subregion classification
     left_tibial_landmarks, right_tibial_landmarks, split_vector = utility.tibial_landmarks(lower_mesh.points)
@@ -179,12 +179,15 @@ def function_for_pool(directory):
     lower_normals_left['distances'] = np.zeros(lower_mesh.n_points)
     lower_normals_right['distances'] = np.zeros(lower_mesh.n_points)
     try:
-        lower_normals_left, tibial_thickness = utility.calculate_distance(lower_normals_left, lower_mesh_left, upper_mesh_left, sitk_image,
-                                                          left_tibial_landmarks, right_tibial_landmarks,
-                                                          split_vector, tibial_thickness, femur=False)
-        lower_normals_right, tibial_thickness = utility.calculate_distance(lower_normals_right, lower_mesh_right, upper_mesh_right, sitk_image,
-                                                          left_tibial_landmarks, right_tibial_landmarks,
-                                                          split_vector, tibial_thickness, femur=False)
+        lower_normals_left, tibial_thickness = utility.calculate_distance(lower_normals_left, lower_mesh_left,
+                                                                          upper_mesh_left, sitk_image,
+                                                                          left_tibial_landmarks, right_tibial_landmarks,
+                                                                          split_vector, tibial_thickness, femur=False)
+        lower_normals_right, tibial_thickness = utility.calculate_distance(lower_normals_right, lower_mesh_right,
+                                                                           upper_mesh_right, sitk_image,
+                                                                           left_tibial_landmarks,
+                                                                           right_tibial_landmarks,
+                                                                           split_vector, tibial_thickness, femur=False)
     except Exception:
         logging.error(traceback.format_exc())
         logging.warning(f'Got error for file {directory} while trying to calculate distance. Return empty dict.')
@@ -299,29 +302,40 @@ def function_for_pool(directory):
     left_normals = lower_mesh_left.compute_normals(cell_normals=False)
     right_normals = lower_mesh_right.compute_normals(cell_normals=False)
 
-    _, left_thickness = utility.calculate_femoral_thickness(left_normals, lower_mesh_left, upper_mesh_left, sitk_image, left_landmarks, left_thickness, True)
-    _, right_thickness = utility.calculate_femoral_thickness(right_normals, lower_mesh_right, upper_mesh_right, sitk_image, right_landmarks, right_thickness, False)
+    _, left_thickness = utility.calculate_femoral_thickness(left_normals, lower_mesh_left, upper_mesh_left, sitk_image,
+                                                            left_landmarks, left_thickness, True)
+    _, right_thickness = utility.calculate_femoral_thickness(right_normals, lower_mesh_right, upper_mesh_right,
+                                                             sitk_image, right_landmarks, right_thickness, False)
 
     femoral_thickness = dict()
     femoral_thickness.update(left_thickness)
     femoral_thickness.update(right_thickness)
 
     lpdf, rpdf, adf = utility.extract_anterior_posterior_zones(femoral_vectors, cwbzl, cwbzr)
-    lp_lower_mesh, lp_upper_mesh = utility.build_tibial_meshes(lpdf.to_numpy()) # left (lateral) posterior region
-    rp_lower_mesh, rp_upper_mesh = utility.build_tibial_meshes(rpdf.to_numpy()) # right (medial) posterior region
-    a_lower_mesh, a_upper_mesh = utility.build_tibial_meshes(adf.to_numpy()) # anterior region
+    ladf, radf = utility.split_anterior_part(adf)
+    lp_lower_mesh, lp_upper_mesh = utility.build_tibial_meshes(lpdf.to_numpy())  # left (lateral) posterior region
+    rp_lower_mesh, rp_upper_mesh = utility.build_tibial_meshes(rpdf.to_numpy())  # right (medial) posterior region
+    la_lower_mesh, la_upper_mesh = utility.build_tibial_meshes(ladf.to_numpy())  # anterior region
+    ra_lower_mesh, ra_upper_mesh = utility.build_tibial_meshes(radf.to_numpy())
 
     lp_normals = lp_lower_mesh.compute_normals(cell_normals=False)
     rp_normals = rp_lower_mesh.compute_normals(cell_normals=False)
-    a_normals = a_lower_mesh.compute_normals(cell_normals=False)
+    la_normals = la_lower_mesh.compute_normals(cell_normals=False)
+    ra_normals = ra_lower_mesh.compute_normals(cell_normals=False)
 
-    lp_distances = utility.calculate_distance_without_classification(lp_normals, lp_lower_mesh, lp_upper_mesh, sitk_image)
-    rp_distances = utility.calculate_distance_without_classification(rp_normals, rp_lower_mesh, rp_upper_mesh, sitk_image)
-    a_distances = utility.calculate_distance_without_classification(a_normals, a_lower_mesh, a_upper_mesh, sitk_image)
+    lp_distances = utility.calculate_distance_without_classification(lp_normals, lp_lower_mesh, lp_upper_mesh,
+                                                                     sitk_image)
+    rp_distances = utility.calculate_distance_without_classification(rp_normals, rp_lower_mesh, rp_upper_mesh,
+                                                                     sitk_image)
+    la_distances = utility.calculate_distance_without_classification(la_normals, la_lower_mesh, la_upper_mesh,
+                                                                     sitk_image)
+    ra_distances = utility.calculate_distance_without_classification(ra_normals, ra_lower_mesh, ra_upper_mesh,
+                                                                     sitk_image)
 
     femoral_thickness['pLF'] = lp_distances['distances']
     femoral_thickness['pMF'] = rp_distances['distances']
-    femoral_thickness['aF'] = a_distances['distances']
+    femoral_thickness['aLF'] = la_distances['distances']
+    femoral_thickness['aMF'] = ra_distances['distances']
 
     keys = set(femoral_thickness.keys())
     for key in keys:
@@ -332,13 +346,14 @@ def function_for_pool(directory):
         femoral_thickness[key + '.aMav'] = np.nanmean(-np.sort(-value)[:math.ceil(len(value) * 0.01)])
         femoral_thickness[key + '.aMiv'] = np.nanmean(np.sort(value)[:math.ceil(len(value) * 0.01)])
         femoral_thickness[key] = np.nanmean(value)
-    
+
     logging.info(f'File {directory} done.')
     return {**{'dir': directory}, **femoral_thickness, **tibial_thickness}
 
 
 def main():
-    logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/mesh/mesh_default.log', encoding='utf-8', level=logging.DEBUG, filemode='w')
+    logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/mesh/mesh_default.log', encoding='utf-8',
+                        level=logging.DEBUG, filemode='w')
     logging.info('Entered main.')
 
     try:
