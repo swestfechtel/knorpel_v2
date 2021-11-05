@@ -466,7 +466,7 @@ def split_anterior_part(adf):
     valley = df.iloc[indices]
     valley = valley[np.abs(stats.zscore(valley['y'])) < 1]
     left_part = adf.loc[adf['y'] < valley['y'].median()]
-    right_part = adf.loc[df['y'] > valley['y'].median()]
+    right_part = adf.loc[adf['y'] > valley['y'].median()]
 
     return left_part, right_part
 
