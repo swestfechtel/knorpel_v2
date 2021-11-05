@@ -176,8 +176,8 @@ def function_for_pool(directory):
     tibial_thickness['pMT'] = np.zeros(lower_mesh.n_points)
     tibial_thickness['iMT'] = np.zeros(lower_mesh.n_points)
 
-    lower_normals_left['distances'] = np.zeros(lower_mesh.n_points)
-    lower_normals_right['distances'] = np.zeros(lower_mesh.n_points)
+    lower_normals_left['distances'] = np.zeros(lower_mesh_left.n_points)
+    lower_normals_right['distances'] = np.zeros(lower_mesh_right.n_points)
     try:
         lower_normals_left, tibial_thickness = utility.calculate_distance(lower_normals_left, lower_mesh_left,
                                                                           upper_mesh_left, sitk_image,
