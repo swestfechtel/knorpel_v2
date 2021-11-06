@@ -341,7 +341,7 @@ def fun(directory):
     inner_points = [item[0] for item in res]
     outer_points = [item[1] for item in res]
 
-    femoral_thickness['aMF'] = np.zeros(len(outer_points))
+    femoral_thickness['aLF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
         femoral_thickness['aLF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * \

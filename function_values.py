@@ -180,7 +180,8 @@ def function_for_pool(directory):
     total_thickness['icMF'] = np.zeros(1)
     total_thickness['pLF'] = np.zeros(1)
     total_thickness['pMF'] = np.zeros(1)
-    total_thickness['aF'] = np.zeros(1)
+    total_thickness['aLF'] = np.zeros(1)
+    total_thickness['aMF'] = np.zeros(1)
 
     total_thickness['eLT'] = np.zeros(1)
     total_thickness['pLT'] = np.zeros(1)
