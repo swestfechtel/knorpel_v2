@@ -496,6 +496,7 @@ def main():
                 if i % 10 == 0:
                     logging.debug(f'Iteration #{i}')
             except Exception:
+                logging.error(traceback.format_exc())
                 continue
 
         logging.info(f'Elapsed time: {time() - t}')
