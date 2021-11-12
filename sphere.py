@@ -410,11 +410,6 @@ def fun(directory):
     tibial_thickness['eLT'] = np.zeros(len(outer_points))
     tibial_thickness['pLT'] = np.zeros(len(outer_points))
     tibial_thickness['iLT'] = np.zeros(len(outer_points))
-    tibial_thickness['cMT'] = np.zeros(len(outer_points))
-    tibial_thickness['aMT'] = np.zeros(len(outer_points))
-    tibial_thickness['eMT'] = np.zeros(len(outer_points))
-    tibial_thickness['pMT'] = np.zeros(len(outer_points))
-    tibial_thickness['iMT'] = np.zeros(len(outer_points))
 
     left_landmarks, right_landmarks, split_vector = utility.tibial_landmarks(outer_points)
     for i in range(len(outer_points)):
@@ -448,6 +443,12 @@ def fun(directory):
     res = res[res != None]
     inner_points = [item[0] for item in res]
     outer_points = [item[1] for item in res]
+
+    tibial_thickness['cMT'] = np.zeros(len(outer_points))
+    tibial_thickness['aMT'] = np.zeros(len(outer_points))
+    tibial_thickness['eMT'] = np.zeros(len(outer_points))
+    tibial_thickness['pMT'] = np.zeros(len(outer_points))
+    tibial_thickness['iMT'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
         label = utility.classify_tibial_point(outer_points[i][:2], left_landmarks, right_landmarks, split_vector)
