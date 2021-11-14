@@ -17,7 +17,7 @@ import utility
 
 
 def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmarks, right_landmarks, cwbz=True,
-                               left=True, label=None, tibia=False, split_vector=None):
+                               left=True, label=None, tibia=False, split_vector=None, af=False):
     """
     Calculates the mean thickness per region for all layers of a cartilage.
 
@@ -38,7 +38,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
     :return: Updated input dictionary with calculated thickness values
     """
     for layer_index, layer in enumerate(layers):
-        if cwbz or tibia:
+        if cwbz or tibia or af:
             x = np.array([x[0] for x in layer])
             y = np.array([x[1] for x in layer])
         else:
@@ -199,37 +199,37 @@ def function_for_pool(directory):
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=True, left=True, label=None,
-                                                     tibia=False, split_vector=None)
+                                                     tibia=False, split_vector=None, af=False)
 
         xs, layers = function_normals.build_cwbz_layers(cwbzr)
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=True, left=False, label=None,
-                                                     tibia=False, split_vector=None)
+                                                     tibia=False, split_vector=None, af=False)
 
         xs, layers = function_normals.build_peripheral_layers(lpdf)
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
-                                                     label='pLF', tibia=False, split_vector=None)
+                                                     label='pLF', tibia=False, split_vector=None, af=False)
 
         xs, layers = function_normals.build_peripheral_layers(rpdf)
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
-                                                     label='pMF', tibia=False, split_vector=None)
+                                                     label='pMF', tibia=False, split_vector=None, af=False)
 
         xs, layers = function_normals.build_peripheral_layers(ladf)
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
-                                                     label='aLF', tibia=False, split_vector=None)
+                                                     label='aLF', tibia=False, split_vector=None, af=True)
 
         xs, layers = function_normals.build_peripheral_layers(radf)
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
-                                                     label='aMF', tibia=False, split_vector=None)
+                                                     label='aMF', tibia=False, split_vector=None, af=True)
     except Exception:
         logging.error(traceback.format_exc())
         return dict()
@@ -251,13 +251,13 @@ def function_for_pool(directory):
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=True, label=None,
-                                                     tibia=True, split_vector=split_vector)
+                                                     tibia=True, split_vector=split_vector, af=False)
 
         xs, layers = function_normals.build_cwbz_layers(rdf)
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
-                                                     label=None, tibia=True, split_vector=split_vector)
+                                                     label=None, tibia=True, split_vector=split_vector, af=False)
     except Exception:
         logging.error(traceback.format_exc())
         return dict()
