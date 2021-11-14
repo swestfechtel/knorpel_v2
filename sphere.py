@@ -414,6 +414,9 @@ def fun(directory):
     left_landmarks, right_landmarks, split_vector = utility.tibial_landmarks(outer_points)
     for i in range(len(outer_points)):
         label = utility.classify_tibial_point(outer_points[i][:2], left_landmarks, right_landmarks, split_vector)
+        if label in set(['cMT', 'aMT', 'eMT', 'pMT', 'iMT']):
+            continue
+
         tibial_thickness[label][i] = utility.vector_distance(outer_points[i], inner_points[i]) * \
                                      sitk_image.GetSpacing()[1]
 
@@ -452,6 +455,9 @@ def fun(directory):
 
     for i in range(len(outer_points)):
         label = utility.classify_tibial_point(outer_points[i][:2], left_landmarks, right_landmarks, split_vector)
+        if label in set(['cLT', 'aLT', 'eLT', 'pLT', 'iLT']):
+            continue
+            
         tibial_thickness[label][i] = utility.vector_distance(outer_points[i], inner_points[i]) * \
                                      sitk_image.GetSpacing()[1]
 
