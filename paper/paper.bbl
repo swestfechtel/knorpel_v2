@@ -1,9 +1,33 @@
-\begin{thebibliography}{WE08}
+\begin{thebibliography}{{Wik}21b}
+
+\bibitem[Che19]{surfacenormals}
+Chetvorno.
+\newblock Normal vectors on a curved surface.
+\newblock
+  \url{https://en.wikipedia.org/wiki/File:Normal_vectors_on_a_curved_surface.svg},
+  2019.
+\newblock [Online, accessed 14-November-2021].
 
 \bibitem[WE08]{wirth2008technique}
 Wolfgang Wirth and Felix Eckstein.
 \newblock A technique for regional analysis of femorotibial cartilage thickness
   based on quantitative magnetic resonance imaging.
 \newblock {\em IEEE transactions on medical imaging}, 27(6):737--744, 2008.
+
+\bibitem[{Wik}21a]{enwiki:delaunay}
+{Wikipedia contributors}.
+\newblock Delaunay triangulation --- {Wikipedia}{,} the free encyclopedia.
+\newblock
+  \url{https://en.wikipedia.org/w/index.php?title=Delaunay_triangulation&oldid=1044718653},
+  2021.
+\newblock [Online; accessed 14-November-2021].
+
+\bibitem[{Wik}21b]{enwiki:normal}
+{Wikipedia contributors}.
+\newblock Normal (geometry) --- {Wikipedia}{,} the free encyclopedia.
+\newblock
+  \url{https://en.wikipedia.org/w/index.php?title=Normal_(geometry)&oldid=1054386602},
+  2021.
+\newblock [Online; accessed 15-November-2021].
 
 \end{thebibliography}

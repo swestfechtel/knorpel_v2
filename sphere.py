@@ -373,6 +373,16 @@ def fun(directory):
         femoral_thickness[key] = np.nanmean(value)
 
     # Tibia
+    tmp_df = pd.DataFrame(data=tibial_vectors, columns=['x', 'y', 'z'])
+    max_z = df.groupby(['x', 'y']).max()
+
+    # extract max and min vectors by z coordinate
+    tmp1 = [np.array(item) for item in max_z.index]
+    tmp2 = [item for item in max_z.to_numpy()]
+    max_z = np.column_stack((tmp1, tmp2))
+
+    left_landmarks, right_landmarks, split_vector = utility.tibial_landmarks(max_z)
+
     cluster = KMeans(n_clusters=1, random_state=0).fit(tibial_vectors)
     split_vector = cluster.cluster_centers_[0]
     left_plate, right_plate = utility.split_into_plates(tibial_vectors, split_vector)
@@ -411,7 +421,6 @@ def fun(directory):
     tibial_thickness['pLT'] = np.zeros(len(outer_points))
     tibial_thickness['iLT'] = np.zeros(len(outer_points))
 
-    left_landmarks, right_landmarks, split_vector = utility.tibial_landmarks(outer_points)
     for i in range(len(outer_points)):
         label = utility.classify_tibial_point(outer_points[i][:2], left_landmarks, right_landmarks, split_vector)
         if label in set(['cMT', 'aMT', 'eMT', 'pMT', 'iMT']):

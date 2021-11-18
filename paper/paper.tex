@@ -9,6 +9,15 @@
 \usepackage[autostyle]{csquotes}
 \usepackage{graphicx}  
 \usepackage{acronym}
+\usepackage{babel}
+\usepackage{url}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{amsfonts}
+
+\makeatletter
+\def\BState{\State\hskip-\ALG@thistlm}
+\makeatother
 % \usepackage{svg}
 
 % \titleformat{\section}[display]
@@ -18,6 +27,12 @@
 % {\normalfont\bfseries}{}{0pt}{\Large}
 
 \newcommand{\norm}[1]{\lvert \lvert #1 \rvert \rvert}
+\newtheorem{theorem}{Definition}[section]
+
+\newcommand{\TODO}[1]{\textbf{\textcolor{red}{$<$TODO$>$ #1 $</>$}}}
+
+\algnewcommand\algorithmicforeach{\textbf{for each}}
+\algdef{S}[FOR]{ForEach}[1]{\algorithmicforeach\ #1\ \algorithmicdo}
 
 %opening
 \title{Automatic Measurement of Cartilage Thickness in the Human Knee}
@@ -39,6 +54,8 @@
 		\acro{icMF}{Mean thickness of the internal cartilage subregion of the central part of the medial femoral condyle}
 		\acro{ccMF}{Mean thickness of the central cartilage subregion of the central part of the medial femoral condyle}
 		\acro{ecMF}{Mean thickness of the external cartilage subregion of the central part of the medial femoral condyle}
+		\acro{aLF}{Mean thickness of the anterior cartilage subregion of the lateral femoral condyle}
+		\acro{aMF}{Mean thickness of the anterior cartilage subregion of the mdeial femoral condyle}
 		\acro{cLT}{Mean thickness of the central cartilage subregion of the lateral tibia}
 		\acro{aLT}{Mean thickness of the anterior cartilage subregion of the lateral tibia}
 		\acro{eLT}{Mean thickness of the external cartilage subregion of the lateral tibia}

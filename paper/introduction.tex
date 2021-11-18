@@ -2,23 +2,96 @@
 \label{sec:Introduction}
 This paper seeks to discuss different methods to automate the measurement of cartilage thickness in the human knee using MRI scans. The methods are based on previous work by Wolfgang Wirth and Felix Eckstein. \cite{wirth2008technique}
 \par\noindent
-All computational methods make use of segmented MRI scans of the human knee, from the OAI dataset, and are written in Python. More precisely, there were two distinct sets of segmentations used: One set of manually segmented images, containing 507 samples, and one set of automatically segmented images, containing 24,783 samples. The set of automatic segmentations contained samples from the entire OAI dataset, i.e. over all time periods. Manual segmentations are stored as MHD and automatic segmentations as NIFTI files, respectively, which can be read and converted into Numpy arrays using the SimpleITK library. These arrays map each point in the three-dimensional space of the scan to an integer encoding, meaning for example points belonging to the femoral cartilage are assigned a value of 3. This makes isolating and extracting the cartilage volumes straightforward. Four different methods have been developed to determine mean cartilage thickness, plus other statistical measures. Thickness was measured for different subregions of the cartilage plate, which were determined as referenced in \cite{wirth2008technique}. For a more detailed description of the procedure, refer to appendix \ref{sec:Subregions}. 
+All computational methods make use of segmented MRI scans of the human knee, from the OAI dataset, and are written in Python. More precisely, there were two distinct sets of segmentations used: One set of manually segmented images, containing 507 samples, and one set of automatically segmented images, containing 24,783 samples. The set of automatic segmentations contained samples from the entire OAI dataset, i.e. over all time periods. Manual segmentations are stored as MHD and automatic segmentations as NIFTI files, respectively, which can be read and converted into Numpy arrays using the SimpleITK library. These arrays map each point in the three-dimensional space of the scan to an integer encoding of the segmentation, meaning for example points belonging to the femoral cartilage are assigned a value of 3. This makes isolating and extracting the cartilage volumes straightforward. Four different methods have been developed to determine mean cartilage thickness, plus other statistical measures. Thickness was measured for different subregions of the cartilage plate, which were determined as referenced in \cite{wirth2008technique}. For a more detailed description of the procedure, refer to appendix \ref{sec:Subregions}. 
 
 \section{Mean cartilage thickness using meshes}
 \label{sec:Meshes}
-This is a three-dimensional approach using meshes and normal vectors to determine the mean thickness of a cartilage volume. The main idea is building an upper and a lower mesh, and calculating the average distance between the two, for example by ray tracing along the normal vectors of the lower mesh against the upper mesh. Other methods, like a K-D-tree nearest neighbour search, are also possible. This works well for the tibial cartilage, because due to its physical shape, it is possible to simply group each point by $x$ and $y$ coordinates and add the point with the highest (lowest) $z$ coordinate to the upper (lower) mesh. The result is two point clouds consisting of vectors $(x, y, z)$, as seen in figure \ref{fig:tibial_point_cloud} (red points make up the upper cloud, green the lower). These can then be converted into polygon meshes using the delaunay algorithm, which in turn allows for determining the normal vectors of the respective meshes (here, the point normals are used as opposed to the cell normals). Mean cartilage thickness can be calculated by tracing along the normal vectors of the lower mesh against the upper mesh. For other methods not making use of the normals, like the previously mentioned nearest neighbour search, the delaunay conversion is optional. 
+This is a three-dimensional approach using meshes and normal vectors to determine the mean thickness of a cartilage volume. The main idea is building an upper and a lower mesh, and calculating the average distance between the two, by ray tracing along the normal vectors of the lower mesh against the upper mesh. Other methods, like a K-D-tree nearest neighbour search, are also possible, but have not been implemented. The mesh building is relatively trivial for the tibial cartilage due to its physical shape. Some formal definitions are necessary:
+\begin{theorem}[Point Cloud]
+	Each cartilage is represented by a set of vectors $V$. The vectors $v \in V$ are defined as a triplet $(x, y, z)$, with $x$, $y$ and $z$ denoting a unique position in the three-dimensional Euclidean space, such that $\forall u, v \in V: u \neq v$.
+\end{theorem}
+\begin{theorem}[Mesh]
+	A mesh is a Delaunay-triangulated surface $DT(P)$ of a point cloud $P$, such that no point $p \in P$ lies inside the circumcircle of any triangle in $DT(P)$. \cite{enwiki:delaunay} 
+\end{theorem}
+The point cloud representation of the tibial cartilage is obtained by filtering the aforementioned array representation of the MRI scan for the integer encoding specific to the tibial cartilage. The vectors forming the upper and lower surface of the cartilage, respectively, are defined as follows:
+\begin{algorithm}
+	\caption{Point Cloud Representation of the Cartilage}
+	\label{algo:pointcloud}
+	\begin{algorithmic}[1]
+		\Procedure{CartilageExtraction}{A,C}
+		\State $A \gets \text{image array}$
+		\State $C \gets \text{color code} \in \{3,4\}$
+		\State $P \gets \{\emptyset\}$
+		\ForEach{$(x,y,z) \in A$}
+			\If{$A[(x,y,z)] = C$}
+				\State $P \gets P \cup (x,y,z)$
+				\State
+			\EndIf
+		\EndFor
+		\Return $P$
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
+Let $P$ be the point cloud representing the tibial cartilage. Furthermore, let $P_{u}$, $P_{l}$ be the point clouds representing the upper and lower surface of the tibial cartilage. Let $f: \mathbb{N} \times \mathbb{N} \rightarrow \mathbb{N}; X \times Y \mapsto \mathbf{Z}$ be a function where $X$ and $Y$ are scalars representing x and y values in the three-dimensional Euclidean space, and $\mathbf{Z}$ be the vector of all $z$ values in the Euclidean space for the position $(x,y)$. Then $P_{u}$ and $P_{l}$ are defined as:
+\newline
+\begin{equation}
+	P_{u} := \{\:(x,y,z)_i \in P \:|\: z = max(f(x,y))\:\}
+\end{equation}
+\begin{equation}
+	P_{l} := \{\:(x,y,z)_i \in P \:|\: z = min(f(x,y))\:\}
+\end{equation}
+\newline
+This essentially means grouping $P$ by $x$ and $y$ coordinates and for each unique coordinate pair $(x_i, y_i)$ in the Euclidean space, choosing the vector with the maximum $z$ coordinate for the upper point cloud $P_{u}$, and the vector with the minimum $z$ coordinate for the lower point cloud $P_{l}$. The result is two point clouds consisting of vectors $(x, y, z)$, as seen in figure \ref{fig:tibial_point_cloud} (red points make up the upper cloud, green the lower). These are then converted into polygon meshes making use of the Delaunay triangulation. For the lower surface mesh, its surface normals are calculated. A surface normal vector is defined as the vector perpendicular to the tangent plane of the surface at a point $P$ \cite{enwiki:normal}. Finally, mean cartilage thickness, i.e. the mean distance between the two meshes, is calculated by tracing along the normal vectors of the lower mesh against the upper mesh. To this end, each surface normal is iteratively extended until it hits the upper mesh, and the Euclidean norm of the vector, i.e. its length, and therefore the distance between the two meshes at a specific point, is computed. This is done for all surface normals, and the average, standard deviation of the calculated distances as well as the mean of the minimum (maximum) 1\% of measurements. Due to the orthogonal nature of the normals, these traces can take into account the topography of the cartilage, allowing for more accurate distance measurements than going in the same static direction for every point $p \in P_{l}$. For other methods not making use of surface normals, like the previously mentioned nearest neighbour search, the Delaunay triangulation may be omitted.
+\begin{algorithm}
+	\caption{Upper and Lower Point Clouds (Tibia)}
+	\label{algo:tibialpointclouds}
+	\begin{algorithmic}[1]
+		\Procedure{PointClouds}{P}
+		\State $P_{u} \gets max(P.groupby((x,y)))$
+		\State $P_{l} \gets min(P.groupby((x,y)))$
+		\State
+		\Return $P_{u}, P_{l}$
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm} 
+\begin{algorithm}
+	\caption{Mean Cartilage Thickness (Tibia)}
+	\label{algo:tibialthickness}
+	\begin{algorithmic}[1]
+		\Procedure{TibialThickness}{$P_{u}$, $P_{l}$}
+		\State $D \gets \{\emptyset\}$
+		\State $M_{u} \gets delaunay(P_{u})$
+		\State $M_{l} \gets delaunay(P_{l})$
+		\State $N_{l} \gets normals(M_{l})$
+		\ForEach{$n \in N_{u}$}
+			\State $v \gets raytrace(n, M_{u}$)
+			\State $d \gets \norm{v}$
+			\State $D \gets D \cup d$
+		\EndFor
+		\State $\overline{D} \gets \frac{\sum_{i = 0} d_{i} \in D}{\lvert D \rvert}$
+		\State
+		\Return $\overline{D}$
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
 \begin{figure}[htb!]
 	\centering
 	\includegraphics[width=\linewidth]{./figures/tibial_points}
-	\caption{Point clouds of the tibial cartilage}
+	\caption{Point clouds of the tibial cartilage. The figure is flipped, i.e. the camera is focused on the bone side of the cartilage.}
 	\label{fig:tibial_point_cloud}
 \end{figure}
+\begin{figure}[htb!]
+	\centering
+	\includegraphics[width=\linewidth]{./figures/2560px-Normal_vectors_on_a_curved_surface.svg}
+	\caption{A curved surface showing the unit normal vectors (blue arrows) to the surface. \cite{surfacenormals}}
+	\label{fig:surfacenormals}
+\end{figure}
 \par
-The femoral cartilage makes things a bit more tricky. Due to its shape, building an upper and lower mesh is not trivial, because while for the tibial cartilage, there was only one respective vector for each coordinate pair $(x, y)$, there may now be multiple for the areas where the volume describes a curve, so just taking the minimum or maximum $z$ coordinate no longer suffices. Using the previous approach results in point clouds where some areas are left bare, as illustrated in figure \ref{fig:femoral_point_cloud}. One solution, used in this approach, is splitting the volume into parts, and rotating the curved sections, such that it is once again possible to choose points according to the $z$ coordinate. For a detailed description of how this splitting is achieved, refer to appendix \ref{sec:Splitting}. This allows for building an upper and lower point cloud and corresponding delaunay mesh for each part, calculating the mean distance in the same manner as before (aka ray tracing), and finally combining the results.
+Mesh building for the femoral cartilage is not as trivial. Due to its convex shape, obtaining the upper and lower point clouds $P_{u}$ and $P_{l}$ can not be achieved by simply always taking the maximum (minimum) $z$ value for each coordinate pair $(x,y)$. For an illustration of the problem, refer to figure \TODO{Abbildung einfuegen, die das Problem veranschaulicht}. Using the same approach as for the tibia results in point clouds where some areas are left bare, as illustrated in figure \ref{fig:femoral_point_cloud}. One solution, used in this approach, is splitting the volume into parts, and rotating the curved sections, such that it is once again possible to choose points according to the $z$ coordinate. For a detailed description of how this splitting is achieved, refer to appendix \ref{sec:Splitting}. This allows for building an upper and lower point cloud and corresponding Delaunay mesh for each part, calculating the mean distance in the same manner as before (i.e. ray tracing), and finally combining the results.
 \begin{figure}[htb!]
 	\centering
 	\includegraphics[width=\linewidth]{./figures/femoral_points}
-	\caption{Point clouds of the femoral cartilage}
+	\caption{Point clouds of the femoral cartilage.}
 	\label{fig:femoral_point_cloud}
 \end{figure}
 
