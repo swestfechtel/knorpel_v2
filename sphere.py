@@ -374,7 +374,7 @@ def fun(directory):
 
     # Tibia
     tmp_df = pd.DataFrame(data=tibial_vectors, columns=['x', 'y', 'z'])
-    max_z = df.groupby(['x', 'y']).max()
+    max_z = tmp_df.groupby(['x', 'y']).max()
 
     # extract max and min vectors by z coordinate
     tmp1 = [np.array(item) for item in max_z.index]
