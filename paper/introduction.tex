@@ -11,7 +11,7 @@ This is a three-dimensional approach using meshes and normal vectors to determin
 	Each cartilage is represented by a set of vectors $V$. The vectors $v \in V$ are defined as a triplet $(x, y, z)$, with $x$, $y$ and $z$ denoting a unique position in the three-dimensional Euclidean space, such that $\forall u, v \in V: u \neq v$.
 \end{theorem}
 \begin{theorem}[Mesh]
-	A mesh is a Delaunay-triangulated surface $DT(P)$ of a point cloud $P$, such that no point $p \in P$ lies inside the circumcircle of any triangle in $DT(P)$. \cite{enwiki:delaunay} 
+	A mesh is a Delaunay-triangulated surface $DT(P) = (V, E, N)$ of a point cloud $P$, such that no point $p \in P$ lies inside the circumcircle of any triangle in $DT(P)$. \cite{enwiki:delaunay} $DT(P)$ consists of a set of vertices $V$, a set of edges $E$ and a set of surface normals $N$, where $V \equiv P$, $\lvert V \rvert = \lvert N \rvert$.
 \end{theorem}
 The point cloud representation of the tibial cartilage is obtained by filtering the aforementioned array representation of the MRI scan for the integer encoding specific to the tibial cartilage. The vectors forming the upper and lower surface of the cartilage, respectively, are defined as follows:
 \begin{algorithm}
@@ -47,8 +47,8 @@ This essentially means grouping $P$ by $x$ and $y$ coordinates and for each uniq
 	\label{algo:tibialpointclouds}
 	\begin{algorithmic}[1]
 		\Procedure{PointClouds}{P}
-		\State $P_{u} \gets max(P.groupby((x,y)))$
-		\State $P_{l} \gets min(P.groupby((x,y)))$
+		\State $P_{u} \gets \max_z (P.groupby((x,y)))$
+		\State $P_{l} \gets \min_z (P.groupby((x,y)))$
 		\State
 		\Return $P_{u}, P_{l}$
 		\EndProcedure
@@ -74,21 +74,33 @@ This essentially means grouping $P$ by $x$ and $y$ coordinates and for each uniq
 		\EndProcedure
 	\end{algorithmic}
 \end{algorithm}
-\begin{figure}[htb!]
+\begin{figure}[]
 	\centering
 	\includegraphics[width=\linewidth]{./figures/tibial_points}
 	\caption{Point clouds of the tibial cartilage. The figure is flipped, i.e. the camera is focused on the bone side of the cartilage.}
 	\label{fig:tibial_point_cloud}
 \end{figure}
-\begin{figure}[htb!]
+\begin{figure}[]
 	\centering
 	\includegraphics[width=\linewidth]{./figures/2560px-Normal_vectors_on_a_curved_surface.svg}
 	\caption{A curved surface showing the unit normal vectors (blue arrows) to the surface. \cite{surfacenormals}}
 	\label{fig:surfacenormals}
 \end{figure}
+\begin{figure}[]
+	\centering
+	\includegraphics[width=\linewidth]{./figures/femur_yz}
+	\caption{Coronal view on the femoral cartilage. The red bar illustrates the problem of extracting the inner and outer outline by $z$ value: In the posterior part of the cartilage, points that, in reality belong to the outer outline, are assigned to the inner outline, and vice versa.}
+	\label{fig:coronal_femur}
+\end{figure}
+\begin{figure}[]
+	\centering
+	\includegraphics[width=\linewidth]{./figures/posterior_femur_yz}
+	\caption{Coronal view on the posterior part of the femoral cartilage. The part has been rotated to allow outline extraction by z value.}
+	\label{fig:coronal_posterior_femur}
+\end{figure}
 \par
-Mesh building for the femoral cartilage is not as trivial. Due to its convex shape, obtaining the upper and lower point clouds $P_{u}$ and $P_{l}$ can not be achieved by simply always taking the maximum (minimum) $z$ value for each coordinate pair $(x,y)$. For an illustration of the problem, refer to figure \TODO{Abbildung einfuegen, die das Problem veranschaulicht}. Using the same approach as for the tibia results in point clouds where some areas are left bare, as illustrated in figure \ref{fig:femoral_point_cloud}. One solution, used in this approach, is splitting the volume into parts, and rotating the curved sections, such that it is once again possible to choose points according to the $z$ coordinate. For a detailed description of how this splitting is achieved, refer to appendix \ref{sec:Splitting}. This allows for building an upper and lower point cloud and corresponding Delaunay mesh for each part, calculating the mean distance in the same manner as before (i.e. ray tracing), and finally combining the results.
-\begin{figure}[htb!]
+Mesh building for the femoral cartilage is not as trivial. Due to its convex shape, obtaining the upper and lower point clouds $P_{u}$ and $P_{l}$ can not be achieved by simply always taking the maximum (minimum) $z$ value for each coordinate pair $(x,y)$. For an illustration of the problem, refer to figure \ref{fig:coronal_femur}. Using the same approach as for the tibia results in point clouds where some areas are left bare, as illustrated in figure \ref{fig:femoral_point_cloud}. This issue can be circumvented by splitting the cartilage into parts, and rotating problematic sections in such a way that it is once again possible to choose points according to the $z$ coordinate, as illustrated in figure. For a detailed description of how this splitting is achieved, refer to appendix \ref{sec:Splitting}. For each part, the outlines are extracted and meshes are calculated analogous to the tibia, and the meshes' surface normals are used to calculate mean thickness for each part of the femoral cartilage.
+\begin{figure}[]
 	\centering
 	\includegraphics[width=\linewidth]{./figures/femoral_points}
 	\caption{Point clouds of the femoral cartilage.}
@@ -97,18 +109,81 @@ Mesh building for the femoral cartilage is not as trivial. Due to its convex sha
 
 \section{Mean cartilage thickness using ray tracing from a central point}
 \label{sec:Raytracing}
-This is a three-dimensional approach using ray tracing along normal vectors to determine the mean thickness of a cartilage volume. This is another proposed solution to the previously discussed issue with the shape of the femoral cartilage volume. Instead of using meshes, this approach takes a central point underneath or above the cartilage and utilizes ray tracing from that point against the volume to discover intersection points. The central point is determined by calculating the halfway points between minimum and maximum $x$, $y$ and $z$ coordinates of the cartilage volume, respectively.
-\par
-A sphere is constructed around the central point, and each of its normal vectors gets extended until it hits the cartilage point cloud, or a maximum number of iterations is reached. If a point is hit, it is saved and the vector again gets extended until it doesn't hit any points anymore, i.e. it is extended past beyond the cartilage. The distance between the first and last point hit is calculated and added to the result set. This way, it is possible to determine the average thickness of the cartilage. One issue with this approach is that it is computationally expensive, as intersection problems tend to be; in essence, there is a trade-off between accuracy and runtime: The more vectors are used for the ray tracing, the more accurate the result is going to be, but each added vector makes the computation more expensive. The resolution of the sphere was set to 30 $\times$ 30, resulting in $30 + 29 \cdot 28 = 842$ normal vectors. No optimization analysis has been performed as of yet.
-
-\begin{figure}[htb!]
+This is a three-dimensional approach using ray tracing along normal vectors to determine the mean thickness of a cartilage volume. This is another proposed solution to the previously discussed issue with the convex shape of the femoral cartilage. Instead of fitting meshes to the cartilage, a sphere is constructed around a central point above or below the cartilage A sphere is defined as follows:
+\begin{theorem}[sphere]
+	A sphere $S = (c, r, V, E, N)$ is a surface mesh, where $c$ is the central point with coordinates $(x,y,z)$, $r$ is the radius, $V$ is a set of vertices, $E$ is a set of edges and $N$ is a set of surface normals, such that $\lvert V \rvert = \lvert N \rvert$.
+\end{theorem}
+Let $P$ be the point cloud representing a cartilage $C$. Then 
+\begin{flalign*}
+	c &= (x,y,z);&&\\
+	c_x &= \min_{x} P + (\max_{x} P - \min_{x} P) \div 4&&\\
+	c_y &= \min_{y} P + (\max_{y} P - \min_{y} P) \div 2&&\\
+	c_z &= \min_{z} P + (\max_{z} P - \min_{z} P) \div 2&&\\
+\end{flalign*}
+for the central weight-bearing zones,
+\begin{flalign*}
+	c_x &= \min_{x} P + (\max_{x} P - \min_{x} P) \div 4&&\\
+	c_y &= \min_{y} P + (\max_{y} P - \min_{y} P) \div 2&&\\
+	c_z &= \min_{z} P + (\max_{z} P - \min_{z} P) \div 2&&\\
+\end{flalign*}
+for the medial and lateral posterior femoral cartilage,
+\begin{flalign*}
+	c_x &= \min_{x} P + ((\max_{x} P - \min_{x} P) \div 4) \cdot 3&&\\
+	c_y &= \min_{y} P + (\max_{y} P - \min_{y} P) \div 2&&\\
+	c_z &= \min_{z} P + (\max_{z} P - \min_{z} P) \div 4&&\\
+\end{flalign*}
+for the medial and lateral anterior femoral cartilage, and
+\begin{flalign*}
+	c_x &= \min_{x} P + (\max_{x} P - \min_{x} P) \div 2&&\\
+	c_y &= \min_{y} P + (\max_{y} P - \min_{y} P) \div 2&&\\
+	c_z &= \max_{z} P \:\cdot\: 1.25&&\\
+\end{flalign*}
+for the lateral and medial tibial cartilage.
+\bigskip
+\par\noindent
+$\lvert V \rvert$ corresponds to the resolution of the sphere, which is a tuple $(\theta, \phi)$, where $\theta$ is the number of vertices in the horizontal (longitude) direction, and $\phi$ the number of vertices in the vertical (latitude) direction. $\theta$ should be equal to $\phi$ in order to obtain a real sphere, as opposed to an ellipsoid; in our case, $\theta = \phi = 60$, and therefore $lvert V \rvert = 60 + 59 \cdot 58 = 3,482$.
+Given a point cloud $P$ and a sphere $S = (c, r, V, E, N)$, the thickness of the corresponding cartilage can be calculated with the following procedure:
+Each surface normal $n \in N$ is iteratively extended until it hits a point $p \in P$, or a maximum number of iterations is reached, in which case the normal is discarded. Once a point is hit, its position is saved as $p_1$, and $n$ is further extended until no more points are hit. For every iteration of this further extension, the hit point in that iteration is saved as $p_2$. At the end of the iteration, the Euclidean distance between the first hit $p_1$ and the last hit $p_2$ is calculated.
+This approach is one of the more computationally expensive ones, as for one, generally more than half of the surface normals will never make a hit, and tracing along these is a wasted effort, although this may be remedied somewhat by checking whether the search space, i.e. the point cloud, lies in the direction of the vector a priori. The other major reason is that the nature of ray tracing is inherently expensive.
+\begin{algorithm}
+	\caption{Ray Tracing from a Sphere}
+	\label{algo:raytracing}
+	\begin{algorithmic}[1]
+		\Procedure{RayTracing}{$P, S$}
+		\State $D \gets \{\emptyset\}$
+		\ForEach{$n \in N$}
+			\Repeat
+				\State $n \gets n \cdot 2$
+				\If{$n \in P$}
+					\State $p_1 \gets n$
+					\State \textit{break}
+				\EndIf
+			\Until{iterations $> 100$}
+			\Repeat
+				\State $n \gets n \cdot 2$
+				\If{$n \notin P$}
+					\State \textit{break}
+				\EndIf
+				\State $p_2 \gets n$
+			\Until{iterations $> 100$}
+			\State $dist \gets d(p_1, p_2)$
+			\State $D \gets D \cup dist$
+			\State
+		\EndFor 
+		\State $\overline{D} \gets \frac{\sum_{i = 0} d_{i} \in D}{\lvert D \rvert}$
+		\State
+		\Return $\overline{D}$
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
+\begin{figure}[]
 	\centering
 	\includegraphics[width=\linewidth]{./figures/femoral_sphere}
 	\caption{Ray tracing against the femoral cartilage using a central sphere}
 	\label{fig:femoral_sphere}
 \end{figure}
 
-\begin{figure}[htb!]
+\begin{figure}[]
 	\centering
 	\includegraphics[width=\linewidth]{./figures/tibial_sphere}
 	\caption{Ray tracing against the tibial cartilage using a central sphere}
@@ -119,8 +194,34 @@ A sphere is constructed around the central point, and each of its normal vectors
 \label{sec:Function_fitting}
 \subsection{Determine thickness via function normals}
 \label{sec:Normals}
-This is a two-dimensional approach using a least-squares fit of single cartilage layers to determine the mean thickness of a cartilage volume. As the MRI scans consist of a number of slice exposures, it is possible to do the thickness calculation layer by layer. For each layer, a polynomial function gets fitted over the data points, i.e. through the middle of the volume, and a variable number of normals is calculated along the fitted function. For each normal, the inner- and outermost intersection points with the cartilage are determined, and the distance between these to points is added to the result set, as illustrated in figure \ref{fig:normals}.
-\begin{figure}[htb!]
+This approach is settled in the two-dimensional rather than the three-dimensional Euclidean space. Instead of considering the MRI scan as a whole, and thus the entire cartilage, the idea here is to look at slices instead. A cartilage is divided into layers, and a polynomial function through the centre is obtained by a least-square fit. A number of normals can then be calculated, making use of the derivative of the function. Since the normal of a function $f$ at a point $x$ is perpendicular to the tangent of $f$ at $x$, the thickness of the cartilage at that point can accurately be determined by finding the outermost intersection points of the normal with the cartilage in either direction, and computing the Euclidean distance between the two intersection points. Do this for every slice and average over the individual measurements to obtain the mean thickness of the cartilage. The advantage of this approach is that the polynomial functions are generally easier to fit than the triangulated meshes discussed earlier, bar for some edge cases (e.g. the outermost slices of the cartilage, where data points can be very sparse and thus, getting a good fit is difficult if not impossible). On the other hand, some sections may be omitted from calculations, as can be seen in figure \ref{fig:normals}.
+\begin{algorithm}
+	\caption{Normals of a Polynomial Fit}
+	\label{algo:normals}
+	\begin{algorithmic}[1]
+		\Procedure{FunctionNormals}{P}
+		\State $D \gets \{\emptyset\}$
+		\State $L \gets \textit{convertIntoLayers(P)}$
+		\ForEach{$layer \: l \in L$}
+			\State $f \gets \textit{polyfit(l)}$
+			\State $\nabla f \gets \textit{derivative(f)}$
+			\State $N \gets \textit{normals(f)}$
+			\ForEach{$n \in N$}
+				\State $m \gets \textit{slope(n)}$
+				\State $p_1 \gets \textit{lastIntersection(n, m)}$
+				\State $p_2 \gets \textit{lastIntersection(n, -m)}$
+				\State $dist \gets d(p_1, p_2)$
+				\State $D \gets D \cup dist$
+				\State
+			\EndFor
+		\EndFor
+		\State $\overline{D} \gets \frac{\sum_{i = 0} d_{i} \in D}{\lvert D \rvert}$
+		\State
+		\Return $\overline{D}$
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
+\begin{figure}[]
 	\centering
 	\includegraphics[width=\linewidth]{./figures/normals}
 	\caption{Normals along a two-dimensional least squares fit}
@@ -129,11 +230,10 @@ This is a two-dimensional approach using a least-squares fit of single cartilage
 
 \subsection{Determine thickness via integration/function values}
 \label{sec:Integration}
-This is another two-dimensional variant, where two functions are fitted over the data points, i.e. not through the middle of the volume but rather along the outlines of the volume, as illustrated in figure \ref{fig:integration}. The distance between the functions, i.e. the thickness of the cartilage, can then easily be calculated, for example by integrating both functions and taking the difference ($\int f(x) dx - \int g(x) dx$), or calculating the difference between the function values for every $x$ value ($[\sum_{x_i = 0}^{max(x)} f(x_i) - g(x_i)] \cdot \frac{1}{max(x)}$).
+This approach is also settled in the two-dimensional Euclidean space, the difference to the previous being that there are two polynomial functions instead of one, which don't go through the middle of the cartilage but rather are fit along its outlines, as illustrated in figure \ref{fig:integration}. The distance between the functions, i.e. the thickness of the cartilage, can then easily be calculated, for example by integrating both functions and taking the difference ($\int f(x) dx - \int g(x) dx$), or calculating the difference between the function values for every $x$ value ($[\sum_{x_i = 0}^{\max_{x}} f(x_i) - g(x_i)] \cdot \frac{1}{\max_{x}}$). Since no normals and therefore no intersection points have to be calculated, this approach is the computationally least expensive. The downside is that it can not take the topography of the cartilage into account, resulting in less accurate measurements especially for the anterior and posterior parts of the femoral cartilage. This can be somewhat remedied by making use of splines, i.e. splitting the cartilage into multiple parts in a similar fashion to the procedure used for the earlier discussed mesh building.
 \par
-One issue with both of these approaches is that the function fitting may not work well for certain shapes, especially for layers where the number of data points is very sparse.
-The degree for the polynomial fit was chosen as four. This is because in practice, no layer is going to have more than two inflection points (layers of the femoral cartilage can generally be approximated by a second-order polynom, while the layers of the tibial cartilage volume follow a third-order form.) and choosing a higher degree than needed is undesirable (overfitting, Runge's phenomenom, etc). While in theory, a degree of two and three, respectively, would be sufficient, it has been set to four to accomodate for edge cases where a lower-order fit might yield poor or no results, e.g. for the layers on the edges of the volume, and the higher flexibility that comes with a higher degree is beneficial.
-\begin{figure}[htb!]
+As previously mentioned, one issue with both of these approaches is that the function fitting may not work well for certain shapes, especially for layers where the number of data points is very sparse. Although most of the layers are going to have no more than two inflection points (layers of the femoral cartilage can generally be approximated by a second-order polynom, while the layers of the tibial cartilage tend to follow a third-order form), some edge cases, e.g. the outermost layers, might return a poor fit, or no fit at all. This could possibly be remedied by choosing a higher degree for the polynomial fit, but doing so may in turn lead to undesirable effects (overfitting, Runge's phenomenon, etc.).
+\begin{figure}[]
 	\centering
 	\includegraphics[width=\linewidth]{./figures/integration}
 	\caption{Two functions fit over the outlines of a tibial cartilage slice exposure}

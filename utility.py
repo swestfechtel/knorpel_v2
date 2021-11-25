@@ -444,6 +444,12 @@ def extract_anterior_posterior_zones(femoral_cartilage, cwbzl, cwbzr):
     lpdf = left_plate.loc[left_plate['x'] > cwbzl['x'].max()]
     rpdf = right_plate.loc[right_plate['x'] > cwbzr['x'].max()]
 
+    lpdf = lpdf[['z', 'y', 'x']]
+    lpdf.columns = ['x', 'y', 'z']
+
+    rpdf = rpdf[['z', 'y', 'x']]
+    rpdf.columns = ['x', 'y', 'z']
+
     ladf = left_plate.loc[left_plate['x'] < cwbzl['x'].min()]
     radf = right_plate.loc[right_plate['x'] < cwbzr['x'].min()]
     adf = pd.concat([ladf, radf])

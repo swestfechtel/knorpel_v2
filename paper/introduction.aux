@@ -15,30 +15,38 @@
 \newlabel{algo:tibialpointclouds}{{2}{4}}
 \@writefile{loa}{\contentsline {algorithm}{\numberline {3}{\ignorespaces Mean Cartilage Thickness (Tibia)}}{4}{}\protected@file@percent }
 \newlabel{algo:tibialthickness}{{3}{4}}
-\@writefile{toc}{\contentsline {section}{\numberline {3}Mean cartilage thickness using ray tracing from a central point}{4}{}\protected@file@percent }
-\newlabel{sec:Raytracing}{{3}{4}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Point clouds of the tibial cartilage. The figure is flipped, i.e. the camera is focused on the bone side of the cartilage.}}{5}{}\protected@file@percent }
-\newlabel{fig:tibial_point_cloud}{{1}{5}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Point clouds of the tibial cartilage. The figure is flipped, i.e. the camera is focused on the bone side of the cartilage.}}{4}{}\protected@file@percent }
+\newlabel{fig:tibial_point_cloud}{{1}{4}}
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces A curved surface showing the unit normal vectors (blue arrows) to the surface. \cite  {surfacenormals}}}{5}{}\protected@file@percent }
 \newlabel{fig:surfacenormals}{{2}{5}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Point clouds of the femoral cartilage.}}{6}{}\protected@file@percent }
-\newlabel{fig:femoral_point_cloud}{{3}{6}}
-\@writefile{toc}{\contentsline {section}{\numberline {4}Mean cartilage thickness using two-dimensional function fitting}{6}{}\protected@file@percent }
-\newlabel{sec:Function_fitting}{{4}{6}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Determine thickness via function normals}{6}{}\protected@file@percent }
-\newlabel{sec:Normals}{{4.1}{6}}
-\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Ray tracing against the femoral cartilage using a central sphere}}{7}{}\protected@file@percent }
-\newlabel{fig:femoral_sphere}{{4}{7}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Determine thickness via integration/function values}{7}{}\protected@file@percent }
-\newlabel{sec:Integration}{{4.2}{7}}
-\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Ray tracing against the tibial cartilage using a central sphere}}{8}{}\protected@file@percent }
-\newlabel{fig:tibial_sphere}{{5}{8}}
-\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Normals along a two-dimensional least squares fit}}{9}{}\protected@file@percent }
-\newlabel{fig:normals}{{6}{9}}
-\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Two functions fit over the outlines of a tibial cartilage slice exposure}}{9}{}\protected@file@percent }
-\newlabel{fig:integration}{{7}{9}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Coronal view on the femoral cartilage. The red bar illustrates the problem of extracting the inner and outer outline by $z$ value: In the posterior part of the cartilage, points that, in reality belong to the outer outline, are assigned to the inner outline, and vice versa.}}{5}{}\protected@file@percent }
+\newlabel{fig:coronal_femur}{{3}{5}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Coronal view on the posterior part of the femoral cartilage. The part has been rotated to allow outline extraction by z value.}}{6}{}\protected@file@percent }
+\newlabel{fig:coronal_posterior_femur}{{4}{6}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Point clouds of the femoral cartilage.}}{7}{}\protected@file@percent }
+\newlabel{fig:femoral_point_cloud}{{5}{7}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Mean cartilage thickness using ray tracing from a central point}{7}{}\protected@file@percent }
+\newlabel{sec:Raytracing}{{3}{7}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {4}{\ignorespaces Ray Tracing from a Sphere}}{9}{}\protected@file@percent }
+\newlabel{algo:raytracing}{{4}{9}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Ray tracing against the femoral cartilage using a central sphere}}{10}{}\protected@file@percent }
+\newlabel{fig:femoral_sphere}{{6}{10}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces Ray tracing against the tibial cartilage using a central sphere}}{11}{}\protected@file@percent }
+\newlabel{fig:tibial_sphere}{{7}{11}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Mean cartilage thickness using two-dimensional function fitting}{12}{}\protected@file@percent }
+\newlabel{sec:Function_fitting}{{4}{12}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Determine thickness via function normals}{12}{}\protected@file@percent }
+\newlabel{sec:Normals}{{4.1}{12}}
+\@writefile{loa}{\contentsline {algorithm}{\numberline {5}{\ignorespaces Normals of a Polynomial Fit}}{12}{}\protected@file@percent }
+\newlabel{algo:normals}{{5}{12}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Normals along a two-dimensional least squares fit}}{13}{}\protected@file@percent }
+\newlabel{fig:normals}{{8}{13}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Determine thickness via integration/function values}{13}{}\protected@file@percent }
+\newlabel{sec:Integration}{{4.2}{13}}
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Two functions fit over the outlines of a tibial cartilage slice exposure}}{14}{}\protected@file@percent }
+\newlabel{fig:integration}{{9}{14}}
 \@setckpt{introduction}{
-\setcounter{page}{10}
+\setcounter{page}{15}
 \setcounter{equation}{2}
 \setcounter{enumi}{0}
 \setcounter{enumii}{0}
@@ -52,11 +60,11 @@
 \setcounter{subsubsection}{0}
 \setcounter{paragraph}{0}
 \setcounter{subparagraph}{0}
-\setcounter{figure}{7}
+\setcounter{figure}{9}
 \setcounter{table}{0}
 \setcounter{FancyVerbLine}{0}
 \setcounter{linenumber}{1}
-\setcounter{LN@truepage}{9}
+\setcounter{LN@truepage}{14}
 \setcounter{FV@TrueTabGroupLevel}{0}
 \setcounter{FV@TrueTabCounter}{0}
 \setcounter{FV@HighlightLinesStart}{0}
@@ -68,8 +76,8 @@
 \setcounter{listing}{0}
 \setcounter{lstnumber}{1}
 \setcounter{parentequation}{0}
-\setcounter{algorithm}{3}
-\setcounter{ALG@line}{11}
+\setcounter{algorithm}{5}
+\setcounter{ALG@line}{16}
 \setcounter{ALG@rem}{0}
 \setcounter{ALG@nested}{0}
 \setcounter{ALG@Lnr}{2}
