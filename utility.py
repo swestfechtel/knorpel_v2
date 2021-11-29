@@ -4,6 +4,7 @@ import os
 import string
 import traceback
 import warnings
+import pickle
 from collections import defaultdict
 
 import SimpleITK as sitk
@@ -32,8 +33,10 @@ def deprecated(func):
 
 
 def get_subdirs(chunk):
+    f = open('/work/scratch/westfechtel/knorpel_v2/stage_01.pickle', 'rb')
+    files = pickle.load(f)
     return [f.name for f in os.scandir('/images/Shape/Medical/Knees/OAI/Manual_Segmentations/') if
-            f.is_dir() and f.name in chunk]
+            f.is_dir() and f.name in chunk and f.name in files]
 
 
 """
@@ -444,7 +447,7 @@ def extract_anterior_posterior_zones(femoral_cartilage, cwbzl, cwbzr):
     lpdf = left_plate.loc[left_plate['x'] > cwbzl['x'].max()]
     rpdf = right_plate.loc[right_plate['x'] > cwbzr['x'].max()]
 
-    lpdf = lpdf[['z', 'y', 'x']]
+    lpdf = lpdf[['z', 'y', 'x']] # rotate
     lpdf.columns = ['x', 'y', 'z']
 
     rpdf = rpdf[['z', 'y', 'x']]
