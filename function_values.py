@@ -68,9 +68,9 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
         layer_thickness = dict()
         if cwbz:
             if left:
-                layer_thickness['ecLF'] = np.zeros(len(x))
-                layer_thickness['ccLF'] = np.zeros(len(x))
-                layer_thickness['icLF'] = np.zeros(len(x))
+                layer_thickness['ecMF'] = np.zeros(len(x))
+                layer_thickness['ccMF'] = np.zeros(len(x))
+                layer_thickness['icMF'] = np.zeros(len(x))
 
                 for i, val in enumerate(x):
                     label = utility.classify_femoral_point(
@@ -83,9 +83,9 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                     dictionary[key] = np.hstack(
                         (dictionary[key], layer_thickness[key]))
             else:
-                layer_thickness['ecMF'] = np.zeros(len(x))
-                layer_thickness['ccMF'] = np.zeros(len(x))
-                layer_thickness['icMF'] = np.zeros(len(x))
+                layer_thickness['ecLF'] = np.zeros(len(x))
+                layer_thickness['ccLF'] = np.zeros(len(x))
+                layer_thickness['icLF'] = np.zeros(len(x))
 
                 for i, val in enumerate(x):
                     label = utility.classify_femoral_point(
@@ -109,11 +109,11 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                     (dictionary[key], layer_thickness[key]))
         else:
             if left:
-                layer_thickness['eLT'] = np.zeros(len(x))
-                layer_thickness['pLT'] = np.zeros(len(x))
-                layer_thickness['iLT'] = np.zeros(len(x))
-                layer_thickness['aLT'] = np.zeros(len(x))
-                layer_thickness['cLT'] = np.zeros(len(x))
+                layer_thickness['eMT'] = np.zeros(len(x))
+                layer_thickness['pMT'] = np.zeros(len(x))
+                layer_thickness['iMT'] = np.zeros(len(x))
+                layer_thickness['aMT'] = np.zeros(len(x))
+                layer_thickness['cMT'] = np.zeros(len(x))
 
                 for i, val in enumerate(x):
                     label = utility.classify_tibial_point(np.array(
@@ -126,11 +126,11 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                     dictionary[key] = np.hstack(
                         (dictionary[key], layer_thickness[key]))
             else:
-                layer_thickness['eMT'] = np.zeros(len(x))
-                layer_thickness['pMT'] = np.zeros(len(x))
-                layer_thickness['iMT'] = np.zeros(len(x))
-                layer_thickness['aMT'] = np.zeros(len(x))
-                layer_thickness['cMT'] = np.zeros(len(x))
+                layer_thickness['eLT'] = np.zeros(len(x))
+                layer_thickness['pLT'] = np.zeros(len(x))
+                layer_thickness['iLT'] = np.zeros(len(x))
+                layer_thickness['aLT'] = np.zeros(len(x))
+                layer_thickness['cLT'] = np.zeros(len(x))
 
                 for i, val in enumerate(x):
                     label = utility.classify_tibial_point(np.array(
@@ -211,25 +211,25 @@ def function_for_pool(directory):
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
-                                                     label='pLF', tibia=False, split_vector=None, af=False)
+                                                     label='pMF', tibia=False, split_vector=None, af=False)
 
         xs, layers = function_normals.build_peripheral_layers(rpdf)
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
-                                                     label='pMF', tibia=False, split_vector=None, af=False)
+                                                     label='pLF', tibia=False, split_vector=None, af=False)
 
         xs, layers = function_normals.build_peripheral_layers(ladf)
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
-                                                     label='aLF', tibia=False, split_vector=None, af=True)
+                                                     label='aMF', tibia=False, split_vector=None, af=True)
 
         xs, layers = function_normals.build_peripheral_layers(radf)
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
-                                                     label='aMF', tibia=False, split_vector=None, af=True)
+                                                     label='aLF', tibia=False, split_vector=None, af=True)
     except Exception:
         logging.error(traceback.format_exc())
         return dict()

@@ -208,9 +208,9 @@ def fun(directory):
     outer_points = [item[1] for item in res]
 
     left_thickness = dict()
-    left_thickness['ecLF'] = np.zeros(len(outer_points))
-    left_thickness['ccLF'] = np.zeros(len(outer_points))
-    left_thickness['icLF'] = np.zeros(len(outer_points))
+    left_thickness['ecMF'] = np.zeros(len(outer_points))
+    left_thickness['ccMF'] = np.zeros(len(outer_points))
+    left_thickness['icMF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
         label = utility.classify_femoral_point(outer_points[i][:2], left_landmarks, left=True)
@@ -227,9 +227,9 @@ def fun(directory):
     outer_points = [item[1] for item in res]
 
     right_thickness = dict()
-    right_thickness['icMF'] = np.zeros(len(outer_points))
-    right_thickness['ccMF'] = np.zeros(len(outer_points))
-    right_thickness['ecMF'] = np.zeros(len(outer_points))
+    right_thickness['icLF'] = np.zeros(len(outer_points))
+    right_thickness['ccLF'] = np.zeros(len(outer_points))
+    right_thickness['ecLF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
         label = utility.classify_femoral_point(outer_points[i][:2], right_landmarks, left=False)
@@ -311,10 +311,10 @@ def fun(directory):
     inner_points = [item[0] for item in res]
     outer_points = [item[1] for item in res]
 
-    femoral_thickness['pLF'] = np.zeros(len(outer_points))
+    femoral_thickness['pMF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
-        femoral_thickness['pLF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * \
+        femoral_thickness['pMF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * \
                                       sitk_image.GetSpacing()[1]
 
     with Pool() as pool:
@@ -326,10 +326,10 @@ def fun(directory):
     inner_points = [item[0] for item in res]
     outer_points = [item[1] for item in res]
 
-    femoral_thickness['pMF'] = np.zeros(len(outer_points))
+    femoral_thickness['pLF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
-        femoral_thickness['pMF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * \
+        femoral_thickness['pLF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * \
                                       sitk_image.GetSpacing()[1]
 
     with Pool() as pool:
@@ -341,10 +341,10 @@ def fun(directory):
     inner_points = [item[0] for item in res]
     outer_points = [item[1] for item in res]
 
-    femoral_thickness['aLF'] = np.zeros(len(outer_points))
+    femoral_thickness['aMF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
-        femoral_thickness['aLF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * \
+        femoral_thickness['aMF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * \
                                       sitk_image.GetSpacing()[1]
 
     with Pool() as pool:
@@ -356,10 +356,10 @@ def fun(directory):
     inner_points = [item[0] for item in res]
     outer_points = [item[1] for item in res]
 
-    femoral_thickness['aMF'] = np.zeros(len(outer_points))
+    femoral_thickness['aLF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
-        femoral_thickness['aMF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * \
+        femoral_thickness['aLF'][i] = utility.vector_distance(inner_points[i], outer_points[i]) * \
                                       sitk_image.GetSpacing()[1]
 
     keys = set(femoral_thickness.keys())
@@ -415,15 +415,15 @@ def fun(directory):
     outer_points = [item[1] for item in res]
 
     tibial_thickness = dict()
-    tibial_thickness['cLT'] = np.zeros(len(outer_points))
-    tibial_thickness['aLT'] = np.zeros(len(outer_points))
-    tibial_thickness['eLT'] = np.zeros(len(outer_points))
-    tibial_thickness['pLT'] = np.zeros(len(outer_points))
-    tibial_thickness['iLT'] = np.zeros(len(outer_points))
+    tibial_thickness['cMT'] = np.zeros(len(outer_points))
+    tibial_thickness['aMT'] = np.zeros(len(outer_points))
+    tibial_thickness['eMT'] = np.zeros(len(outer_points))
+    tibial_thickness['pMT'] = np.zeros(len(outer_points))
+    tibial_thickness['iMT'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
         label = utility.classify_tibial_point(outer_points[i][:2], left_landmarks, right_landmarks, split_vector)
-        if label in set(['cMT', 'aMT', 'eMT', 'pMT', 'iMT']):
+        if label in set(['cLT', 'aLT', 'eLT', 'pLT', 'iLT']):
             continue
 
         tibial_thickness[label][i] = utility.vector_distance(outer_points[i], inner_points[i]) * \
@@ -456,15 +456,15 @@ def fun(directory):
     inner_points = [item[0] for item in res]
     outer_points = [item[1] for item in res]
 
-    tibial_thickness['cMT'] = np.zeros(len(outer_points))
-    tibial_thickness['aMT'] = np.zeros(len(outer_points))
-    tibial_thickness['eMT'] = np.zeros(len(outer_points))
-    tibial_thickness['pMT'] = np.zeros(len(outer_points))
-    tibial_thickness['iMT'] = np.zeros(len(outer_points))
+    tibial_thickness['cLT'] = np.zeros(len(outer_points))
+    tibial_thickness['aLT'] = np.zeros(len(outer_points))
+    tibial_thickness['eLT'] = np.zeros(len(outer_points))
+    tibial_thickness['pLT'] = np.zeros(len(outer_points))
+    tibial_thickness['iLT'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
         label = utility.classify_tibial_point(outer_points[i][:2], left_landmarks, right_landmarks, split_vector)
-        if label in set(['cLT', 'aLT', 'eLT', 'pLT', 'iLT']):
+        if label in set(['cMT', 'aMT', 'eMT', 'pMT', 'iMT']):
             continue
             
         tibial_thickness[label][i] = utility.vector_distance(outer_points[i], inner_points[i]) * \

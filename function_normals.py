@@ -172,9 +172,9 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
         layer_thickness = dict()
         if cwbz:
             if left:
-                layer_thickness['ecLF'] = np.zeros(len(outline_points))
-                layer_thickness['ccLF'] = np.zeros(len(outline_points))
-                layer_thickness['icLF'] = np.zeros(len(outline_points))
+                layer_thickness['ecMF'] = np.zeros(len(outline_points))
+                layer_thickness['ccMF'] = np.zeros(len(outline_points))
+                layer_thickness['icMF'] = np.zeros(len(outline_points))
 
                 for i, point in enumerate(outline_points):
                     label = utility.classify_femoral_point(
@@ -187,9 +187,9 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                     dictionary[key] = np.hstack(
                         (dictionary[key], layer_thickness[key]))
             else:
-                layer_thickness['ecMF'] = np.zeros(len(outline_points))
-                layer_thickness['ccMF'] = np.zeros(len(outline_points))
-                layer_thickness['icMF'] = np.zeros(len(outline_points))
+                layer_thickness['ecLF'] = np.zeros(len(outline_points))
+                layer_thickness['ccLF'] = np.zeros(len(outline_points))
+                layer_thickness['icLF'] = np.zeros(len(outline_points))
 
                 for i, point in enumerate(outline_points):
                     label = utility.classify_femoral_point(
@@ -213,11 +213,11 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                     (dictionary[key], layer_thickness[key]))
         else:
             if left:
-                layer_thickness['eLT'] = np.zeros(len(outline_points))
-                layer_thickness['pLT'] = np.zeros(len(outline_points))
-                layer_thickness['iLT'] = np.zeros(len(outline_points))
-                layer_thickness['aLT'] = np.zeros(len(outline_points))
-                layer_thickness['cLT'] = np.zeros(len(outline_points))
+                layer_thickness['eMT'] = np.zeros(len(outline_points))
+                layer_thickness['pMT'] = np.zeros(len(outline_points))
+                layer_thickness['iMT'] = np.zeros(len(outline_points))
+                layer_thickness['aMT'] = np.zeros(len(outline_points))
+                layer_thickness['cMT'] = np.zeros(len(outline_points))
 
                 for i, point in enumerate(outline_points):
                     label = utility.classify_tibial_point(np.array(
@@ -230,11 +230,11 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                     dictionary[key] = np.hstack(
                         (dictionary[key], layer_thickness[key]))
             else:
-                layer_thickness['eMT'] = np.zeros(len(outline_points))
-                layer_thickness['pMT'] = np.zeros(len(outline_points))
-                layer_thickness['iMT'] = np.zeros(len(outline_points))
-                layer_thickness['aMT'] = np.zeros(len(outline_points))
-                layer_thickness['cMT'] = np.zeros(len(outline_points))
+                layer_thickness['eLT'] = np.zeros(len(outline_points))
+                layer_thickness['pLT'] = np.zeros(len(outline_points))
+                layer_thickness['iLT'] = np.zeros(len(outline_points))
+                layer_thickness['aLT'] = np.zeros(len(outline_points))
+                layer_thickness['cLT'] = np.zeros(len(outline_points))
 
                 for i, point in enumerate(outline_points):
                     label = utility.classify_tibial_point(np.array(
@@ -318,7 +318,7 @@ def function_for_pool(directory):
     xs, layers = build_peripheral_layers(lpdf)
     total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                  xs=xs, left_landmarks=left_landmarks,
-                                                 right_landmarks=right_landmarks, cwbz=False, left=False, label='pLF',
+                                                 right_landmarks=right_landmarks, cwbz=False, left=False, label='pMF',
                                                  tibia=False, split_vector=None)
     logging.info(f'{directory} finished calculations for lpdf in {time() - t} seconds.')
 
@@ -326,7 +326,7 @@ def function_for_pool(directory):
     xs, layers = build_peripheral_layers(rpdf)
     total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                  xs=xs, left_landmarks=left_landmarks,
-                                                 right_landmarks=right_landmarks, cwbz=False, left=False, label='pMF',
+                                                 right_landmarks=right_landmarks, cwbz=False, left=False, label='pLF',
                                                  tibia=False, split_vector=None)
     logging.info(f'{directory} finished calculations for rpdf in {time() - t} seconds.')
 
@@ -334,13 +334,13 @@ def function_for_pool(directory):
     xs, layers = build_peripheral_layers(ladf)
     total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                  xs=xs, left_landmarks=left_landmarks,
-                                                 right_landmarks=right_landmarks, cwbz=False, left=False, label='aLF',
+                                                 right_landmarks=right_landmarks, cwbz=False, left=False, label='aMF',
                                                  tibia=False, split_vector=None)
 
     xs, layers = build_peripheral_layers(radf)
     total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                  xs=xs, left_landmarks=left_landmarks,
-                                                 right_landmarks=right_landmarks, cwbz=False, left=False, label='aMF',
+                                                 right_landmarks=right_landmarks, cwbz=False, left=False, label='aLF',
                                                  tibia=False, split_vector=None)
     logging.info(f'{directory} finished calculations for adf in {time() - t} seconds.')
 

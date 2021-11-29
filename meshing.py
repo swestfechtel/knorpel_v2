@@ -290,14 +290,14 @@ def function_for_pool(directory):
     right_landmarks = utility.femoral_landmarks(upper_mesh_right.points)
 
     left_thickness = dict()
-    left_thickness['ecLF'] = np.zeros(lower_mesh_left.n_points)
-    left_thickness['ccLF'] = np.zeros(lower_mesh_left.n_points)
-    left_thickness['icLF'] = np.zeros(lower_mesh_left.n_points)
+    left_thickness['ecMF'] = np.zeros(lower_mesh_left.n_points)
+    left_thickness['ccMF'] = np.zeros(lower_mesh_left.n_points)
+    left_thickness['icMF'] = np.zeros(lower_mesh_left.n_points)
 
     right_thickness = dict()
-    right_thickness['icMF'] = np.zeros(lower_mesh_right.n_points)
-    right_thickness['ccMF'] = np.zeros(lower_mesh_right.n_points)
-    right_thickness['ecMF'] = np.zeros(lower_mesh_right.n_points)
+    right_thickness['icLF'] = np.zeros(lower_mesh_right.n_points)
+    right_thickness['ccLF'] = np.zeros(lower_mesh_right.n_points)
+    right_thickness['ecLF'] = np.zeros(lower_mesh_right.n_points)
 
     left_normals = lower_mesh_left.compute_normals(cell_normals=False)
     right_normals = lower_mesh_right.compute_normals(cell_normals=False)
@@ -332,10 +332,10 @@ def function_for_pool(directory):
     ra_distances = utility.calculate_distance_without_classification(ra_normals, ra_lower_mesh, ra_upper_mesh,
                                                                      sitk_image)
 
-    femoral_thickness['pLF'] = lp_distances['distances']
-    femoral_thickness['pMF'] = rp_distances['distances']
-    femoral_thickness['aLF'] = la_distances['distances']
-    femoral_thickness['aMF'] = ra_distances['distances']
+    femoral_thickness['pMF'] = lp_distances['distances']
+    femoral_thickness['pLF'] = rp_distances['distances']
+    femoral_thickness['aMF'] = la_distances['distances']
+    femoral_thickness['aLF'] = ra_distances['distances']
 
     keys = set(femoral_thickness.keys())
     for key in keys:
