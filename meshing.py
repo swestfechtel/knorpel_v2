@@ -148,8 +148,17 @@ def function_for_pool(directory):
         return dict()
 
     # determine landmarks for tibial plates for subregion classification
-    left_tibial_landmarks, right_tibial_landmarks, split_vector = utility.tibial_landmarks(lower_mesh.points)
+    # left_tibial_landmarks, right_tibial_landmarks, split_vector = utility.tibial_landmarks(lower_mesh.points)
+    df = pd.DataFrame(data=tibial_cartilage, columns=['x', 'y', 'z'])
+    max_z = df.groupby(['x', 'y']).max()
+
+    tmp1 = [np.array(item) for item in max_z.index]
+    tmp2 = [item for item in max_z.to_numpy()]
+    max_z = np.column_stack((tmp1, tmp2))
+
+    left_tibial_landmarks, right_tibial_landmarks, split_vector = utility.tibial_landmarks(max_z)
     left_plate, right_plate = utility.split_into_plates(tibial_vectors, split_vector)
+
 
     lower_mesh_left, upper_mesh_left = utility.build_tibial_meshes(left_plate)
     lower_mesh_right, upper_mesh_right = utility.build_tibial_meshes(right_plate)

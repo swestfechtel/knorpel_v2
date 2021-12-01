@@ -344,9 +344,17 @@ def function_for_pool(directory):
                                                  tibia=False, split_vector=None)
     logging.info(f'{directory} finished calculations for adf in {time() - t} seconds.')
 
-    lower_mesh, upper_mesh = utility.build_tibial_meshes(tibial_vectors)
-    left_landmarks, right_landmarks, split_vector = utility.tibial_landmarks(
-        lower_mesh.points)
+    # lower_mesh, upper_mesh = utility.build_tibial_meshes(tibial_vectors)
+    # left_landmarks, right_landmarks, split_vector = utility.tibial_landmarks(
+    #     lower_mesh.points)
+    df = pd.DataFrame(data=tibial_cartilage, columns=['x', 'y', 'z'])
+    max_z = df.groupby(['x', 'y']).max()
+
+    tmp1 = [np.array(item) for item in max_z.index]
+    tmp2 = [item for item in max_z.to_numpy()]
+    max_z = np.column_stack((tmp1, tmp2))
+
+    left_landmarks, right_landmarks, split_vector = utility.tibial_landmarks(max_z)
 
     x, y, z, xy = utility.get_xyz(tibial_vectors)
     left_plate, right_plate = utility.split_into_plates(
