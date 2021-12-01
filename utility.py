@@ -230,31 +230,9 @@ def classify_tibial_point(vector, left_regions, right_regions, split_vector) -> 
     al, bl, cl, dl, l_rad, l_center = left_regions
     ar, br, cr, dr, r_rad, r_center = right_regions
     # print(vector)
-    if vector[1] > split_vector[1]:
-        if is_in_ellipse(vector, l_center[:2], l_rad):
-            return 'cLT'
-
-        ac = np.array(cl) - np.array(al)
-        db = np.array(bl) - np.array(dl)
-        xc = np.array(cl) - np.array([vector[0], vector[1]])
-        xb = np.array(bl) - np.array([vector[0], vector[1]])
-
-        x_cross_ac = np.cross(ac, xc)
-        x_cross_db = np.cross(db, xb)
-        if x_cross_ac > 0:
-            if x_cross_db > 0:
-                return 'eLT'
-            else:
-                return 'pLT'
-        else:
-            if x_cross_db > 0:
-                return 'aLT'
-            else:
-                return 'iLT'
-    else:
-
+    if vector[1] > split_vector[1]: #right - lateral
         if is_in_ellipse(vector, r_center[:2], r_rad):
-            return 'cMT'
+            return 'cLT'
 
         ac = np.array(cr) - np.array(ar)
         db = np.array(br) - np.array(dr)
@@ -265,14 +243,36 @@ def classify_tibial_point(vector, left_regions, right_regions, split_vector) -> 
         x_cross_db = np.cross(db, xb)
         if x_cross_ac > 0:
             if x_cross_db > 0:
-                return 'iMT'
+                return 'iLT'
+            else:
+                return 'pLT'
+        else:
+            if x_cross_db > 0:
+                return 'aLT'
+            else:
+                return 'eLT'
+    else: # left - medial
+
+        if is_in_ellipse(vector, l_center[:2], l_rad):
+            return 'cMT'
+
+        ac = np.array(cl) - np.array(al)
+        db = np.array(bl) - np.array(dl)
+        xc = np.array(cl) - np.array([vector[0], vector[1]])
+        xb = np.array(bl) - np.array([vector[0], vector[1]])
+
+        x_cross_ac = np.cross(ac, xc)
+        x_cross_db = np.cross(db, xb)
+        if x_cross_ac > 0:
+            if x_cross_db > 0:
+                return 'eMT'
             else:
                 return 'pMT'
         else:
             if x_cross_db > 0:
                 return 'aMT'
             else:
-                return 'eMT'
+                return 'iMT'
 
 
 """
@@ -310,18 +310,18 @@ def classify_femoral_point(vector, landmarks, left=True):
     first_split, second_split = landmarks
     if not left:
         if vector[1] < first_split:
-            return 'ecLF'
+            return 'icLF'
         elif first_split <= vector[1] <= second_split:
             return 'ccLF'
         else:
-            return 'icLF'
+            return 'ecLF'
     else:
         if vector[1] < first_split:
-            return 'icMF'
+            return 'ecMF'
         elif first_split <= vector[1] <= second_split:
             return 'ccMF'
         else:
-            return 'ecMF'
+            return 'icMF'
 
 
 def read_image(path: string) -> [sitk.Image, np.array]:
