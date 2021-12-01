@@ -219,12 +219,17 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                 layer_thickness['aMT'] = np.zeros(len(outline_points))
                 layer_thickness['cMT'] = np.zeros(len(outline_points))
 
+                fails = 0
                 for i, point in enumerate(outline_points):
                     label = utility.classify_tibial_point(np.array(
                         [xs[layer_index], point[0][0]]), left_landmarks, right_landmarks, split_vector)
+                    if label in set(['cLT', 'aLT', 'eLT', 'pLT', 'iLT']):
+                        fails += 1
+                        continue
                     layer_thickness[label][i] = utility.vector_distance(
                         point[0], point[1]) * sitk_image.GetSpacing()[1]
 
+                logging.info(f'{fails} failed classifications (of {i})')
                 keys = set(layer_thickness.keys())
                 for key in keys:
                     dictionary[key] = np.hstack(
@@ -236,12 +241,17 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                 layer_thickness['aLT'] = np.zeros(len(outline_points))
                 layer_thickness['cLT'] = np.zeros(len(outline_points))
 
+                fails = 0
                 for i, point in enumerate(outline_points):
                     label = utility.classify_tibial_point(np.array(
                         [xs[layer_index], point[0][0]]), left_landmarks, right_landmarks, split_vector)
+                    if label in set(['cMT', 'aMT', 'eMT', 'pMT', 'iMT']):
+                        fails += 1           
+                        continue
                     layer_thickness[label][i] = utility.vector_distance(
                         point[0], point[1]) * sitk_image.GetSpacing()[1]
 
+                logging.info(f'{fails} failed classifications (of {i})')
                 keys = set(layer_thickness.keys())
                 for key in keys:
                     dictionary[key] = np.hstack(
