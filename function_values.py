@@ -114,13 +114,17 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                 layer_thickness['iMT'] = np.zeros(len(x))
                 layer_thickness['aMT'] = np.zeros(len(x))
                 layer_thickness['cMT'] = np.zeros(len(x))
-
+                fails = 0
                 for i, val in enumerate(x):
                     label = utility.classify_tibial_point(np.array(
                         [xs[layer_index], val]), left_landmarks, right_landmarks, split_vector)
+                    if label in set(['cLT', 'aLT', 'eLT', 'pLT', 'iLT']):
+                        fails += 1
+                        continue
                     layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * \
                                                 sitk_image.GetSpacing()[1]
-
+                
+                logging.info(f'{fails} failed classifications (of {i})')
                 keys = set(layer_thickness.keys())
                 for key in keys:
                     dictionary[key] = np.hstack(
@@ -132,12 +136,17 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                 layer_thickness['aLT'] = np.zeros(len(x))
                 layer_thickness['cLT'] = np.zeros(len(x))
 
+                fails = 0
                 for i, val in enumerate(x):
                     label = utility.classify_tibial_point(np.array(
                         [xs[layer_index], val]), left_landmarks, right_landmarks, split_vector)
+                    if label in set(['cMT', 'aMT', 'eMT', 'pMT', 'iMT']):
+                        fails += 1           
+                        continue
                     layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * \
                                                 sitk_image.GetSpacing()[1]
-
+                
+                logging.info(f'{fails} failed classifications (of {i})')
                 keys = set(layer_thickness.keys())
                 for key in keys:
                     dictionary[key] = np.hstack(
