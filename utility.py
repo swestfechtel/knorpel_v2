@@ -36,7 +36,7 @@ def get_subdirs(chunk):
     f = open('/work/scratch/westfechtel/knorpel_v2/stage_01.pickle', 'rb')
     files = pickle.load(f)
     return [f.name for f in os.scandir('/images/Shape/Medical/Knees/OAI/Manual_Segmentations/') if
-            f.is_dir() and f.name in chunk and f.name in files]
+            f.is_dir() and f.name in chunk and int(f.name) in files]
 
 
 """
@@ -230,7 +230,7 @@ def classify_tibial_point(vector, left_regions, right_regions, split_vector) -> 
     al, bl, cl, dl, l_rad, l_center = left_regions
     ar, br, cr, dr, r_rad, r_center = right_regions
     # print(vector)
-    if vector[1] < split_vector[1]:
+    if vector[1] > split_vector[1]:
         if is_in_ellipse(vector, l_center[:2], l_rad):
             return 'cLT'
 
@@ -308,7 +308,7 @@ def classify_femoral_point(vector, left_regions, right_regions, split_vector) ->
 
 def classify_femoral_point(vector, landmarks, left=True):
     first_split, second_split = landmarks
-    if left:
+    if not left:
         if vector[1] < first_split:
             return 'ecLF'
         elif first_split <= vector[1] <= second_split:
@@ -403,14 +403,14 @@ def extract_central_weightbearing_zone(femoral_cartilage, tibial_cartilage):
         dd[label].append(vector)
 
     # extract external, central and internal subregions for each tibial cartilage plate
-    wbl = np.vstack((np.array(dd['eLT']), np.array(dd['cLT']), np.array(dd['iLT'])))
-    wbr = np.vstack((np.array(dd['iMT']), np.array(dd['cMT']), np.array(dd['eMT'])))
+    wbr = np.vstack((np.array(dd['eLT']), np.array(dd['cLT']), np.array(dd['iLT'])))
+    wbl = np.vstack((np.array(dd['iMT']), np.array(dd['cMT']), np.array(dd['eMT'])))
 
     # pack them into a dataframe and cut the dimensions along the x axis to the min, max x expansion of the respective central subregion
     tdfr = pd.DataFrame(data={'x': wbr[:, 0], 'y': wbr[:, 1], 'z': wbr[:, 2]})
     tdfl = pd.DataFrame(data={'x': wbl[:, 0], 'y': wbl[:, 1], 'z': wbl[:, 2]})
-    tdfr = tdfr.loc[tdfr['x'] < max(np.array(dd['cMT'])[:, 0])].loc[tdfr['x'] > min(np.array(dd['cMT'])[:, 0])]
-    tdfl = tdfl.loc[tdfl['x'] < max(np.array(dd['cLT'])[:, 0])].loc[tdfl['x'] > min(np.array(dd['cLT'])[:, 0])]
+    tdfr = tdfr.loc[tdfr['x'] < max(np.array(dd['cLT'])[:, 0])].loc[tdfr['x'] > min(np.array(dd['cLT'])[:, 0])]
+    tdfl = tdfl.loc[tdfl['x'] < max(np.array(dd['cMT'])[:, 0])].loc[tdfl['x'] > min(np.array(dd['cMT'])[:, 0])]
 
     # pack the femoral cartilage into a dataframe and split into two plates
     df = pd.DataFrame(data=femoral_cartilage, columns=['x', 'y', 'z'])
