@@ -75,7 +75,7 @@ def trace(p, v, tolerance, df):
 
 
 def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmarks, right_landmarks, cwbz=True,
-                               left=True, label=None, tibia=False, split_vector=None):
+                               left=True, label=None, tibia=False, split_vector=None, pdf=False):
     """
     Calculates the mean thickness per region for all layers of a cartilage.
 
@@ -97,7 +97,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
     :return: Updated input dictionary with calculated thickness values
     """
     for layer_index, layer in enumerate(layers):
-        if cwbz or tibia:
+        if cwbz or tibia or pdf:
             x = np.array([x[0] for x in layer])
             y = np.array([x[1] for x in layer])
         else:
@@ -329,7 +329,7 @@ def function_for_pool(directory):
     total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                  xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=False, left=False, label='pMF',
-                                                 tibia=False, split_vector=None)
+                                                 tibia=False, split_vector=None, pdf=True)
     logging.info(f'{directory} finished calculations for lpdf in {time() - t} seconds.')
 
     t = time()
@@ -337,7 +337,7 @@ def function_for_pool(directory):
     total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                  xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=False, left=False, label='pLF',
-                                                 tibia=False, split_vector=None)
+                                                 tibia=False, split_vector=None, pdf=True)
     logging.info(f'{directory} finished calculations for rpdf in {time() - t} seconds.')
 
     t = time()

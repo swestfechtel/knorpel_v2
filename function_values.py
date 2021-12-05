@@ -17,7 +17,7 @@ import utility
 
 
 def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmarks, right_landmarks, cwbz=True,
-                               left=True, label=None, tibia=False, split_vector=None, af=False):
+                               left=True, label=None, tibia=False, split_vector=None, af=False, pdf=False):
     """
     Calculates the mean thickness per region for all layers of a cartilage.
 
@@ -38,7 +38,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
     :return: Updated input dictionary with calculated thickness values
     """
     for layer_index, layer in enumerate(layers):
-        if cwbz or tibia or af:
+        if cwbz or tibia or af or pdf:
             x = np.array([x[0] for x in layer])
             y = np.array([x[1] for x in layer])
         else:
@@ -220,13 +220,13 @@ def function_for_pool(directory):
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
-                                                     label='pMF', tibia=False, split_vector=None, af=False)
+                                                     label='pMF', tibia=False, split_vector=None, af=False, pdf=True)
 
         xs, layers = function_normals.build_peripheral_layers(rpdf)
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
-                                                     label='pLF', tibia=False, split_vector=None, af=False)
+                                                     label='pLF', tibia=False, split_vector=None, af=False, pdf=True)
 
         xs, layers = function_normals.build_peripheral_layers(ladf)
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
