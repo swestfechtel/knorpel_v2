@@ -208,9 +208,9 @@ def fun(directory):
     outer_points = [item[1] for item in res]
 
     left_thickness = dict()
-    right_thickness['icLF'] = np.zeros(len(outer_points))
-    right_thickness['ccLF'] = np.zeros(len(outer_points))
-    right_thickness['ecLF'] = np.zeros(len(outer_points))
+    left_thickness['ecLF'] = np.zeros(len(outer_points))
+    left_thickness['ccLF'] = np.zeros(len(outer_points))
+    left_thickness['icLF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
         label = utility.classify_femoral_point(outer_points[i][:2], left_landmarks, left=True)
@@ -227,9 +227,9 @@ def fun(directory):
     outer_points = [item[1] for item in res]
 
     right_thickness = dict()
-    left_thickness['ecMF'] = np.zeros(len(outer_points))
-    left_thickness['ccMF'] = np.zeros(len(outer_points))
-    left_thickness['icMF'] = np.zeros(len(outer_points))
+    right_thickness['ecMF'] = np.zeros(len(outer_points))
+    right_thickness['ccMF'] = np.zeros(len(outer_points))
+    right_thickness['icMF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
         label = utility.classify_femoral_point(outer_points[i][:2], right_landmarks, left=False)
