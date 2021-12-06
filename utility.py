@@ -403,14 +403,14 @@ def extract_central_weightbearing_zone(femoral_cartilage, tibial_cartilage):
         dd[label].append(vector)
 
     # extract external, central and internal subregions for each tibial cartilage plate
-    wbr = np.vstack((np.array(dd['eLT']), np.array(dd['cLT']), np.array(dd['iLT'])))
-    wbl = np.vstack((np.array(dd['iMT']), np.array(dd['cMT']), np.array(dd['eMT'])))
+    wbl = np.vstack((np.array(dd['eLT']), np.array(dd['cLT']), np.array(dd['iLT'])))
+    wbr = np.vstack((np.array(dd['iMT']), np.array(dd['cMT']), np.array(dd['eMT'])))
 
     # pack them into a dataframe and cut the dimensions along the x axis to the min, max x expansion of the respective central subregion
     tdfr = pd.DataFrame(data={'x': wbr[:, 0], 'y': wbr[:, 1], 'z': wbr[:, 2]})
     tdfl = pd.DataFrame(data={'x': wbl[:, 0], 'y': wbl[:, 1], 'z': wbl[:, 2]})
-    tdfr = tdfr.loc[tdfr['x'] < max(np.array(dd['cLT'])[:, 0])].loc[tdfr['x'] > min(np.array(dd['cLT'])[:, 0])]
-    tdfl = tdfl.loc[tdfl['x'] < max(np.array(dd['cMT'])[:, 0])].loc[tdfl['x'] > min(np.array(dd['cMT'])[:, 0])]
+    tdfr = tdfr.loc[tdfr['x'] < max(np.array(dd['cMT'])[:, 0])].loc[tdfr['x'] > min(np.array(dd['cMT'])[:, 0])]
+    tdfl = tdfl.loc[tdfl['x'] < max(np.array(dd['cLT'])[:, 0])].loc[tdfl['x'] > min(np.array(dd['cLT'])[:, 0])]
 
     # pack the femoral cartilage into a dataframe and split into two plates
     df = pd.DataFrame(data=femoral_cartilage, columns=['x', 'y', 'z'])
