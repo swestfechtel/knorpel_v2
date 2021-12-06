@@ -223,7 +223,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                 for i, point in enumerate(outline_points):
                     label = utility.classify_tibial_point(np.array(
                         [xs[layer_index], point[0][0]]), left_landmarks, right_landmarks, split_vector)
-                    if label in set(['cLT', 'aLT', 'eLT', 'pLT', 'iLT']):
+                    if label in set(['cMT', 'aMT', 'eMT', 'pMT', 'iMT']):
                         fails += 1
                         continue
                     layer_thickness[label][i] = utility.vector_distance(
@@ -245,7 +245,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                 for i, point in enumerate(outline_points):
                     label = utility.classify_tibial_point(np.array(
                         [xs[layer_index], point[0][0]]), left_landmarks, right_landmarks, split_vector)
-                    if label in set(['cMT', 'aMT', 'eMT', 'pMT', 'iMT']):
+                    if label in set(['cLT', 'aLT', 'eLT', 'pLT', 'iLT']):
                         fails += 1           
                         continue
                     layer_thickness[label][i] = utility.vector_distance(

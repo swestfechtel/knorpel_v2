@@ -119,7 +119,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                 for i, val in enumerate(x):
                     label = utility.classify_tibial_point(np.array(
                         [xs[layer_index], val]), left_landmarks, right_landmarks, split_vector)
-                    if label in set(['cLT', 'aLT', 'eLT', 'pLT', 'iLT']):
+                    if label in set(['cMT', 'aMT', 'eMT', 'pMT', 'iMT']):
                         fails += 1
                         continue
                     layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * \
@@ -142,7 +142,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                 for i, val in enumerate(x):
                     label = utility.classify_tibial_point(np.array(
                         [xs[layer_index], val]), left_landmarks, right_landmarks, split_vector)
-                    if label in set(['cMT', 'aMT', 'eMT', 'pMT', 'iMT']):
+                    if label in set(['cLT', 'aLT', 'eLT', 'pLT', 'iLT']):
                         fails += 1           
                         continue
                     layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * \
