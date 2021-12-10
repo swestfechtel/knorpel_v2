@@ -1,32 +1,40 @@
-\section{Splitting of femoral cartilage volume for meshes}
+\section{Splitting of femoral cartilage}
 \label{sec:Splitting}
-As described above, constructing meshes for the femoral cartilage is not possible without some pre-processing. The convex parts of the volume on either side need to be split off and rotated by 90° so that minimum and maximum points can reliably be extracted without missing a significant amount. The sections are isolated as follows: 
+As mentioned earlier, the femoral cartilage is split into multiple parts, namely the central weight-bearing zones, the anterior and the posterior sections (of the lateral and medial cartilage, respectively). The weight-bearing zones are defined as those regions of the cartilage which lie vis-a-vis, i.e. are in contact with, the central regions of the tibial cartilage (cLT/cMT, eLT/eMT, iLT/iMT). Once these are extracted, definition of the anterior and posterior parts is trivial: they are what is left of the cartilage on either side of the central weight-bearing zones (Refer to figure \ref{fig:femoral_subregions}). To circumvent the problem the convex nature of the posterior parts poses to mesh triangulation and function fitting, these sections are rotated by 90°. 
 \par\noindent
-The cartilage volume is a point cloud made up of vectors $(x, y, z)$. Group the points by $(x, y)$ and for each of these combinations, calculate the range of $z$. Then calculate the mean or median of $z$ and take all combinations $(x, y)$ for which the range of z is less than the previously calculated mean/median, i.e. those points where the minimum and maximum z values are not too far apart. Note that the convex parts of the cartilage are characterized by a large ranges for z. Having now isolated the central part of the volume, it is a trivial task to extract the convex parts: We can calculate the minimum and maximum x value of the central vectors, and everything left of the minimum gets assigned to the left convex part, and everything right of the maximum gets assigned to the right convex part.
+Let the lateral and medial tibial cartilage plates be represented by two point clouds $LT$ and $MT$. Furthermore, let the central, external and internal subregions of the plates be represented by points clouds $cLT$, $eLT$, $iLT \subset LT$ and $cMT$, $eMT$, $iMT \subset MT$. For both point clouds, subsets $LT' \subset LT$ and $MT' \subset MT$ are defined such that
+\newline
+\begin{equation}
+	LT' := \{\:(x,y,z)_i \in LT \:|\: x < \max_{x} cLT \land x > \min_{x} cLT\:\}
+\end{equation}
+\begin{equation}
+	MT' := \{\:(x,y,z)_i \in MT \:|\: x < \max_{x} cMT \land x > \min_{x} cMT\:\}
+\end{equation}
+\newline
+These subsets represent the parts of the tibial cartilage plates in contact with the femoral cartilage (in standing position). They can then be used to extract the corresponding parts of the femoral cartilage. Let the lateral and medial femoral cartilage regions be represented by two points clouds $LF$ and $MF$. For both point clouds, subsets $LF' \subset LF$ and $MF' \subset MF$ are defined such that
+\newline
+\begin{equation}
+	LF' := \{\:(x,y,z)_i \in LF \:|\: x < \max_{x} LT' \land x > \min_{x} LT' \land y < \max_{y} LT' \land y > \min_{y} LT'\:\}
+\end{equation}
+\begin{equation}
+	MF' := \{\:(x,y,z)_i \in MF \:|\: x < \max_{x} MT' \land x > \min_{x} MT' \land y < \max_{y} MT' \land y > \min_{y} MT'\:\}
+\end{equation}
+\newline
+These subsets represent the parts of the femoral cartilage in contact with the tibial cartilage (in standing position), i.e. the central weight-bearing zones of the femoral cartilage.
 \par\noindent
-With the sections isolated, the problematic convex parts can then be rotated by 90°. Now, again for every combination $(x, y)$, the vector $(x, y, max(z))$ can be added to the upper mesh, and the vector $(x, y, min(z))$ to the lower ($min(z)$/$max(z)$ may be replaced by distance to a central point, depending on implementation).
-
-\begin{minted}[escapeinside=~~,mathescape=true,breaklines,linenos]{text}
-	Procedure to split a femoral cartilage volume into three parts
-	Given:
-	volume := vectors (x, y, z) making up the volume
-	
-	Procedure:
-	z_range := volume.group_by((x, y)).z.max() - volume.group_by((x, y)).z.min()
-	z_med := median(z_range)
-	z_index := {d ~$\in$~ volume | d.z < z_med}
-	lower_bound := {min(d.x) | d ~$\in$~ z_index}
-	upper_bound := {max(d.x) | d ~$\in$~ z_index}
-	left_part := {d ~$\in$~ volume | d.x < lower_bound}
-	middle_part := {d ~$\in$~ volume | lower_bound < d.x < upper_bound}
-	right_part := {d ~$\in$~ volume | d.x > upper_bound}
-	left_part := rotate(90)
-	right_part := rotate(90)
-\end{minted} 
-
-\begin{figure}[htb!]
-	\centering
-	\includegraphics[width=\linewidth]{./figures/femoral_meshes}
-	\caption{Successful construction of meshes for the femoral cartilage}
-	\label{fig:femoral_meshes}
-\end{figure}
+As mentioned before, definition of the remaining subregions of the femur is then trivial. Let the lateral and medial anterior and posterior regions of the femoral cartilage be represented by point clouds $aLF$, $pLF \subset LF$ and $aMF$, $pMF \subset MF$ such that
+\newline
+\begin{equation}
+	aLF := \{\:(x,y,z)_i \in LF \:|\: x < \min_{x} LF'\:\}
+\end{equation}
+\begin{equation}
+	aMF := \{\:(x,y,z)_i \in MF \:|\: x < \min_{x} MF'\:\}
+\end{equation}
+\begin{equation}
+	pLF := LF \setminus (LF' \cup aLF)
+\end{equation}
+\begin{equation}
+	pMF := MF \setminus (MF' \cup aMF)
+\end{equation}
+\newline
+The subregions of the central weight-bearing zones are determined as suggested by \cite{wirth2008technique}.

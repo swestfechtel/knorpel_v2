@@ -1,119 +1,87 @@
 \section{Determination of the cartilage subregions}
 \label{sec:Subregions}
-As proposed by Wirth \& Eckstein, the two cartilage plates of the medial / lateral femoral condyle are divided into three subregions each (central, internal and external), while the two cartilage plates of the medial / lateral tibia are divided into five subregions each (central, internal, external, anterior, posterior). For nomenclature, refer to the table of acronyms below. 
+As proposed by Wirth \& Eckstein, the central weight-bearing zones of the medial / lateral femoral cartilage are divided into three subregions each (central, internal and external), while the two cartilage plates of the medial / lateral tibia are divided into five subregions each (central, internal, external, anterior, posterior). For nomenclature, refer to the table of acronyms below. 
 \subsection{Determination of the femoral subregions}
-For each plate of the femur, each subregion should encompass approximately 33\% of the plate volume. This was achieved in practice by splitting the volume into three parts along the y-axis; two splitting points $x1, x2$ are chosen arbitrarily, such that $y_{min} < y1 < y2 < y_{max}, y1 = \frac{y_{max} - y_{min}}{3}, y2 = 2 \cdot y1$, where $y_{max}, y_{min}$ are the maximum / minimum y values, respectively. $y1$ and $y2$ are then iteratively moved along the y-axis until the constraint is satisfied, i.e. 33\% of all data points lie left of $y1$, 33\% lie between $y1$ and $y2$ and 33\% lie right of $y2$.
+Let the central weight-bearing zones be represented by two point clouds $LF'$ and $MF'$. For both central weight-bearing zones, each subregion should encompass approximately 33\% of the surface. This was achieved in practice by splitting the zones into three parts along the y-axis; two splitting points $p_1, p_2$ are chosen arbitrarily, such that $\min_{y} LF'/MF' < p_1 < p_2 < max_{y} LF'/MF', p_1 = \frac{\max_{y} LF'/MF' - \min_{y} LF'/MF'}{3}, p_2 = 2 \cdot p_1$. $p_1$ and $p_2$ are then iteratively moved along the y-axis until the constraint is satisfied, i.e. 33\% of all data points lie left of $p_1$, 33\% lie between $p_1$ and $p_2$ and 33\% lie right of $p_2$.
+\begin{algorithm}
+	\caption{Determination of central weight-bearing subregions}
+	\label{algo:cwbzRegions}
+	\begin{algorithmic}[1]
+		\Procedure{CWBZRegions}{P}
+		\State $P \gets \text{point cloud}$
+		\State $p_1 \gets (\max_{y} P - \min_{y} P) / 3$
+		\State $p_2 \gets p_1 \cdot 2$
+		\State $P_1 \gets \{\:(x,y,z) \in P' \subset P \:|\: y < p_1\:\}$
+		\State $P_2 \gets \{\:(x,y,z) \in P' \subset P \:|\: p_1 < y < p_2\:\}$
+		\State $P_3 \gets \{\:(x,y,z) \in P' \subset P \:|\: p_2 < y\:\}$
+		\Repeat
+			\If{$\lvert P_1 \rvert \div \lvert P \rvert > .33$}
+				\State $p_1 \gets p_1 - 1$
+			\Else
+				\State $p_1 \gets p_1 + 1$
+			\EndIf
+			\If{$\lvert P_2 \rvert \div \lvert P \rvert > .33$}
+				\State $p_2 \gets p_2 - 1$
+			\Else
+				\State $p_2 \gets p_2 + 1$
+			\EndIf
+			\State $P_1 \gets \{\:(x,y,z) \in P' \subset P \:|\: y < p_1\:\}$
+			\State $P_2 \gets \{\:(x,y,z) \in P' \subset P \:|\: p_1 < y < p_2\:\}$
+			\State $P_3 \gets \{\:(x,y,z) \in P' \subset P \:|\: p_2 < y\:\}$
+		\Until{$\lvert P_1 \rvert \approx \lvert P_2 \rvert \approx \lvert P_3 \rvert$}
+		\State
+		\Return $p_1, p_2$
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
 \subsection{Determination of the tibial subregions}
-For each plate, an ellipse around the center of the plate, aka the central region, should encompass approximately 20\% of the plate volume, and four triangles surrounding the ellipse should be of variable size. This was achieved in practice by first determining the center of gravity of the plate through K-Means clustering and constructing an ellipse around this point; a radius $r$ is chosen arbitrarily, and is lengthened iteratively until the constraint is satisfied, i.e. 20\% of all data points lie within the ellipse. The four triangles surrounding the ellipse are determined by calculating the corners $a, b, c, d$ of the plate, and data points are assigned to subregions according to their position relative to the vectors $\vec{ac}$ and $\vec{db}$, which is calculated via cross product.
-
-\begin{minted}[escapeinside=~~,mathescape=true,breaklines,linenos]{text}
-	Procedure to determine femoral subregions
-	Given:
-	y_axis := range of x-axis
-	plate := data points (x, y, z) making up a cartilage plate
-	
-	Procedure:
-	y_min, y_max := min(y_axis), max(y_axis)
-	y_range := y_max - y_min
-	y1 := y_range / 3
-	y2 := 2 * y1
-	first_third := empty set
-	second_third := empty set
-	
-	while len(first_third) / len(plate) is not .33 do
-		first_third := {d ~$\in$~ plate | d.y < y1}
-		if len(first_third) > .33 
-			y1 := y1 - 1
-		else
-			y1 := y1 + 1
-	
-	while len(second_plate) / len(plate) is not .33 do
-		second_plate := {d ~$\in$~ plate | y1 < d.y < y2}
-		if len(second_plate) > .33
-			y2 := y2 - 1
-		else
-			y2 := y2 + 1
-\end{minted}
-\begin{minted}[escapeinside=~~,mathescape=true,breaklines,linenos]{text}
-	Procedure to assign a femoral point to a subregion
-	Given:
-	plate := data points (x, y, z) making up a cartilage plate
-	y1, y2 := split points
-	
-	for point in plate do
-		if point.y < y1
-			point.region = external/internal # depending on whether point lies in left or right plate
-		if y1 < point.y < y2
-			point.region = central
-		else
-			point.region = external/internal # depending on whether point lies in left or right plate
-\end{minted}
-\begin{minted}[escapeinside=~~,mathescape=true,breaklines,linenos]{text}
-	Procedure to determine tibial subregions
-	Given:
-	plate := data points (x, y, z) making up a cartilage plate
-	
-	Procedure:
-	r := 20
-	c := KMeans(plate)
-	points_in_ellipse := empty set
-	
-	while len(points_in_ellipse) / len(plate) is not .2 do
-		points_in_ellipse := {d ~$\in$~ plate | dist(d, c) < r}
-		if len(points_in_ellipse) > .2
-			r = r / 2
-		else
-			r = r + .5
-	
-	x_min := {min(d.x) | d ~$\in$~ plate}
-	x_max := {max(d.x) | d ~$\in$~ plate}
-	y_min := {min(d.y) | d ~$\in$~ plate}
-	y_max := {max(d.y) | d ~$\in$~ plate}
-	
-	a := (x_min, y_min)
-	b := (x_max, y_min)
-	c := (x_max, y_max)
-	d := (x_min, y_max)
-\end{minted}
-\begin{minted}[escapeinside=~~,mathescape=true,breaklines,linenos]{text}
-	Procedure to assign a tibial point to a subregion
-	Given:
-	plate := data points (x, y, z) making up a cartilage plate
-	a, b, c, d := plate corners
-	points_in_ellipse := set of points lying within the central ellipse
-	
-	Procedure:
-	for point in plate do
-		if point is in points_in_ellipse
-			point.region := central
-			
-		ac := c - a
-		db := b - d
-		pc := c - point
-		pb := b - point
-		
-		if ac ~$\times$~ pc > 0
-			if db ~$\times$~ pc > 0
-				point.region := internal
-			else
-				point.region := posterior
-		else
-			if db ~$\times$~ pc > 0
-				point.region := anterior
-			else
-				point.region := external
-\end{minted}
-
-\begin{figure}[htb!]
+As proposed by \cite{wirth2008technique}, each plate of the tibial cartilage can be divided into five subregions (central, internal, external, anterior and posterior).
+For each plate, an ellipse around the centre of the plate encompassing approximately 20\% of the plate's surface, represents the central subregion, and four triangles of variable size surrounding the ellipse represent the internal, external, anterior and posterior subregions. Let the lateral / medial tibial cartilage plates be represented by two point clouds $LT$ and $MT$. For each point cloud, the centre of gravity $c$ is determined through simple K-Means-Clustering with a single cluster, i.e. the mean of all data points of the point cloud. Two ellipses around the centres of gravity are defined as $E_L = (c_T, r_T)$ and $E_M = (c_M, r_M)$, where $c_x$ is the centre and $r_x$ is the radius of the ellipse. The ellipse therefore defines a subset of the respective cartilage plate, such that $E_x \subset xT, E_x := \{\:(x,y,z) \in E_x \:|\: \norm{(x,y,z) - c_x} \leq r_x\:\}, \lvert E_x \rvert \div \lvert xT \rvert \approx .20$. The four triangles surrounding the ellipse are determined by determining the corners $a, b, c, d$ of the plate, and data points $p \in xT$ are assigned to subregions according to their position relative to the vectors $\vec{ac}$ and $\vec{db}$, which is calculated via cross product.
+\begin{algorithm}
+	\caption{Determination of tibial subregions}
+	\label{algo:tibialRegions}
+	\begin{algorithmic}[1]
+		\Procedure{TibialRegions}{P}
+		\State $P \gets \text{point cloud}$
+		\State $c \gets centre(P)$
+		\State $r \gets \text{random initialization of radius}$
+		\State $P' \gets \{\:(x,y,z) \in P' \subset P \:|\: \norm{(x,y,z) - c} \leq r\}$
+		\Repeat
+			\If{$\lvert P' \rvert / \lvert P \rvert > .2$}
+				\State $r \gets r / 2$
+			\Else
+				\State $r \gets r + .5$
+			\EndIf
+			\State $P' \gets \{\:(x,y,z) \in P' \subset P \:|\: \norm{(x,y,z) - c} \leq r\}$
+		\Until{$\lvert P' \rvert / \lvert P \rvert \approx .2$}
+		\State $a \gets (\min_{x} P, \min_{y} P)$
+		\State $b \gets (\max_{x} P, \min_{y} P)$
+		\State $c \gets (\max_{x} P, \max_{y} P)$
+		\State $d \gets (\min_{x} P, \max_{y} P)$
+		\State $ac \gets c - a$
+		\State $db \gets b - d$
+		\State $P_a \gets \{\:(x,y,z) \in P \:|\: ac \times (c - xy)  < 0 \land db \times (b - xy) > 0\:\}$
+		\State $P_p \gets \{\:(x,y,z) \in P \:|\: ac \times (c - xy)  > 0 \land db \times (b - xy) < 0\:\}$
+		\State $P_i \gets \{\:(x,y,z) \in P \:|\: ac \times (c - xy)  > 0 \land db \times (b - xy) > 0\:\}$ \Comment{assuming medial}
+		\State $P_a \gets \{\:(x,y,z) \in P \:|\: ac \times (c - xy)  < 0 \land db \times (b - xy) < 0\:\}$ \Comment{vice versa for lateral}
+		\EndProcedure
+	\end{algorithmic}
+\end{algorithm}
+\begin{figure}[]
+	\centering
+	\includegraphics[width=\linewidth]{./figures/cwbz_subregions}
+	\caption{Subregions of the central weight-bearing zones of the femoral cartilage. Color codes are as follows: red - external; green - central; cyan - internal of the lateral zone; blue - internal of the medial zone}
+	\label{fig:cwbz_subregions}
+\end{figure}
+\begin{figure}[]
 	\centering
 	\includegraphics[width=\linewidth]{./figures/femoral_subregions}
-	\caption{Subregions of the femoral cartilage}
+	\caption{Subregions of the femoral cartilage. Color codes are as follows: red - lateral anterior; green - medial anterior; orange - lateral central; cyan - medial central; purple - lateral posterior; yellow - medial posterior}
 	\label{fig:femoral_subregions}
 \end{figure}
-
-\begin{figure}[htb!]
+\begin{figure}[]
 	\centering
 	\includegraphics[width=\linewidth]{./figures/tibial_subregions}
-	\caption{Subregions of the tibial cartilage}
+	\caption{Subregions of the tibial cartilage. Color codes are as follows: red - internal; green - anterior; orange - posterior; blue - external; pink - central}
 	\label{fig:tibial_subregions}
 \end{figure}

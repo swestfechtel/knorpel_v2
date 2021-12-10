@@ -76,12 +76,6 @@ This essentially means grouping $P$ by $x$ and $y$ coordinates and for each uniq
 \end{algorithm}
 \begin{figure}[]
 	\centering
-	\includegraphics[width=\linewidth]{./figures/tibial_points}
-	\caption{Point clouds of the tibial cartilage. The figure is flipped, i.e. the camera is focused on the bone side of the cartilage.}
-	\label{fig:tibial_point_cloud}
-\end{figure}
-\begin{figure}[]
-	\centering
 	\includegraphics[width=\linewidth]{./figures/2560px-Normal_vectors_on_a_curved_surface.svg}
 	\caption{A curved surface showing the unit normal vectors (blue arrows) to the surface. \cite{surfacenormals}}
 	\label{fig:surfacenormals}
@@ -102,11 +96,16 @@ This essentially means grouping $P$ by $x$ and $y$ coordinates and for each uniq
 Mesh building for the femoral cartilage is not as trivial. Due to its convex shape, obtaining the upper and lower point clouds $P_{u}$ and $P_{l}$ can not be achieved by simply always taking the maximum (minimum) $z$ value for each coordinate pair $(x,y)$. For an illustration of the problem, refer to figure \ref{fig:coronal_femur}. Using the same approach as for the tibia results in point clouds where some areas are left bare, as illustrated in figure \ref{fig:femoral_point_cloud}. This issue can be circumvented by splitting the cartilage into parts, and rotating problematic sections in such a way that it is once again possible to choose points according to the $z$ coordinate, as illustrated in figure. For a detailed description of how this splitting is achieved, refer to appendix \ref{sec:Splitting}. For each part, the outlines are extracted and meshes are calculated analogous to the tibia, and the meshes' surface normals are used to calculate mean thickness for each part of the femoral cartilage.
 \begin{figure}[]
 	\centering
-	\includegraphics[width=\linewidth]{./figures/femoral_points}
-	\caption{Point clouds of the femoral cartilage.}
-	\label{fig:femoral_point_cloud}
+	\includegraphics[width=\linewidth]{./figures/femoral_meshes}
+	\caption{Triangulated surface meshes for the femoral cartilage.}
+	\label{fig:femoral_meshes}
 \end{figure}
-
+\begin{figure}[]
+	\centering
+	\includegraphics[width=\linewidth]{./figures/tibial_meshes}
+	\caption{Triangulated surface meshes for the tibial cartilage.}
+	\label{fig:tibial_meshes}
+\end{figure}
 \section{Mean cartilage thickness using ray tracing from a central point}
 \label{sec:Raytracing}
 This is a three-dimensional approach using ray tracing along normal vectors to determine the mean thickness of a cartilage volume. This is another proposed solution to the previously discussed issue with the convex shape of the femoral cartilage. Instead of fitting meshes to the cartilage, a sphere is constructed around a central point above or below the cartilage A sphere is defined as follows:
@@ -178,18 +177,16 @@ This approach is one of the more computationally expensive ones, as for one, gen
 \end{algorithm}
 \begin{figure}[]
 	\centering
-	\includegraphics[width=\linewidth]{./figures/femoral_sphere}
-	\caption{Ray tracing against the femoral cartilage using a central sphere}
+	\includegraphics[width=\linewidth]{./figures/sphere_placement_femur}
+	\caption{Exemplary placement of a sphere for the lateral posterior femoral cartilage.}
 	\label{fig:femoral_sphere}
 \end{figure}
-
 \begin{figure}[]
 	\centering
-	\includegraphics[width=\linewidth]{./figures/tibial_sphere}
-	\caption{Ray tracing against the tibial cartilage using a central sphere}
+	\includegraphics[width=\linewidth]{./figures/sphere_placement_tibia}
+	\caption{Exemplary placement of a sphere for the lateral tibial cartilage.}
 	\label{fig:tibial_sphere}
 \end{figure}
-
 \section{Mean cartilage thickness using two-dimensional function fitting}
 \label{sec:Function_fitting}
 \subsection{Determine thickness via function normals}
