@@ -528,6 +528,8 @@ def main():
         logging.debug(traceback.format_exc())
         logging.debug(sys.argv)
 
+    logging.info(f'total execution time: {time() - t}')
+
 
 if __name__ == '__main__':
     main()

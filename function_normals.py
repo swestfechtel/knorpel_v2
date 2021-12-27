@@ -470,6 +470,8 @@ def main():
         logging.debug(traceback.format_exc())
         logging.debug(sys.argv)
 
+    logging.info(f'total execution time: {time() - t}')
+
 
 def test():
     logging.basicConfig(filename='function_normals_default.log',

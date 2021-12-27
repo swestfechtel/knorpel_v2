@@ -420,6 +420,8 @@ def main():
         logging.error(traceback.format_exc())
         logging.error(sys.argv)
 
+    logging.info(f'total execution time: {time() - t}')
+
 
 if __name__ == '__main__':
     main()
