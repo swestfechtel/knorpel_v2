@@ -1,14 +1,11 @@
 import SimpleITK as sitk
-import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
 import pandas as pd
 import utility
 import meshing
 from tqdm import tqdm
-from scipy import stats
 from collections import defaultdict
-from numpy.polynomial import polynomial as poly
 from pathlib import Path
 
 
