@@ -33,10 +33,13 @@ def deprecated(func):
 
 
 def get_subdirs(chunk):
-    f = open('/work/scratch/westfechtel/knorpel_v2/stage_234.pickle', 'rb')
+    f = open('stage_01.pickle', 'rb')
     files = pickle.load(f)
-    return [f.name for f in os.scandir('/images/Shape/Medical/Knees/OAI/Manual_Segmentations/') if
-            f.is_dir() and f.name in chunk and int(f.name) in files]
+    if chunk is None:
+        return [f.name for f in os.scandir('../Manual_Segmentations/')]
+    else:
+        return [f.name for f in os.scandir('../Manual_Segmentations/') if
+            f.is_dir() and f.name in chunk and int(f.name) in files and f.name != '9001104']
 
 
 """

@@ -2,6 +2,9 @@ import logging
 import math
 import sys
 import traceback
+import multiprocessing
+import time
+import random
 from concurrent.futures import TimeoutError
 from time import time
 
@@ -11,6 +14,7 @@ import pyvista as pv
 from pebble import ProcessPool
 from pebble.common import ProcessExpired
 from scipy import stats
+from logging.handlers import QueueHandler, QueueListener
 
 import utility
 
@@ -112,6 +116,7 @@ def combine_to_cloud(left_mesh: pv.core.pointset.PolyData, middle_mesh: pv.core.
 
 
 def function_for_pool(directory):
+    t = time()
     """
     Function to use for a multiprocessing pool.
 
@@ -122,7 +127,7 @@ def function_for_pool(directory):
     :param directory: The image file to read
     :return: A dictionary containing the file name and average thickness and statistical measures for each subregion
     """
-    segmentation_directory = f'/images/Shape/Medical/Knees/OAI/Manual_Segmentations/{directory}/{directory}_segm.mhd'
+    segmentation_directory = f'../Manual_Segmentations/{directory}/{directory}_segm.mhd'
     # segmentation_directory = f'/work/scratch/westfechtel/segmentations/{directory}'
     sitk_image, np_image = utility.read_image(segmentation_directory)
     try:
@@ -187,6 +192,8 @@ def function_for_pool(directory):
 
     lower_normals_left['distances'] = np.zeros(lower_mesh_left.n_points)
     lower_normals_right['distances'] = np.zeros(lower_mesh_right.n_points)
+
+    n_tibia = lower_mesh_left.n_points + lower_normals_right.n_points
     try:
         lower_normals_left, tibial_thickness = utility.calculate_distance(lower_normals_left, lower_mesh_left,
                                                                           upper_mesh_left, sitk_image,
@@ -356,21 +363,48 @@ def function_for_pool(directory):
         femoral_thickness[key + '.aMiv'] = np.nanmean(np.sort(value)[:math.ceil(len(value) * 0.01)])
         femoral_thickness[key] = np.nanmean(value)
 
+    n_femur = lower_mesh_left.n_points + lower_mesh_right.n_points + lp_lower_mesh.n_points + rp_lower_mesh.n_points + la_lower_mesh.n_points + ra_lower_mesh.n_points
+
     logging.info(f'File {directory} done.')
+    logging.info(f'::{time() - t}::')
+    logging.info(f'++{n_tibia}++')
+    logging.info(f'<<{n_femur}>>')
     return {**{'dir': directory}, **femoral_thickness, **tibial_thickness}
 
 
+def worker_init(q):
+    # all records from worker processes go to qh and then into q
+    qh = QueueHandler(q)
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(qh)
+
+
+def logger_init():
+    q = multiprocessing.Queue()
+    # this is the handler for all log records
+    handler = logging.FileHandler(f'logs/mesh.log', mode='w')
+    handler.setFormatter(logging.Formatter("%(levelname)s: %(asctime)s - %(process)s - %(message)s"))
+
+    # ql gets records from the queue and sends them to the handler
+    ql = QueueListener(q, handler)
+    ql.start()
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    # add the handler to the logger so records from this process are handled
+    logger.addHandler(handler)
+
+    return ql, q
+
+
 def main():
-    logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/mesh/mesh_default.log', encoding='utf-8',
+    logging.basicConfig(filename='logs/mesh_default.log', encoding='utf-8',
                         level=logging.DEBUG, filemode='w')
     logging.info('Entered main.')
 
     try:
-        assert len(sys.argv) == 2
-        chunk = np.load(f'/work/scratch/westfechtel/chunks/{sys.argv[1]}.npy')
-        # chunk = sys.argv[1]
-
-        filehandler = logging.FileHandler(f'/work/scratch/westfechtel/pylogs/mesh/{sys.argv[1]}.log', mode='w')
+        filehandler = logging.FileHandler(f'logs/mesh.log', mode='w')
         filehandler.setLevel(logging.DEBUG)
         filehandler.setFormatter(logging.Formatter('%(levelname)s:%(message)s'))
         root = logging.getLogger()
@@ -378,16 +412,19 @@ def main():
             root.removeHandler(handler)
 
         root.addHandler(filehandler)
-        files = utility.get_subdirs(chunk)
+
+        q_listener, q = logger_init()
+
+        files = utility.get_subdirs(None)
+
+        files = files[:50]
 
         # debug !!
         # files = files[-100:-1]
 
-        logging.info(f'Using chunk {sys.argv[1]} with length {len(files)}.')
-
         res_list = list()
         t = time()
-        with ProcessPool() as pool:
+        with ProcessPool(initializer=worker_init, initargs=[q]) as pool:
             res = pool.map(function_for_pool, files, timeout=600)
             # res = pool.map(function=function_for_pool, iterables=files, chunksize=int(len(files)/8), timeout=180)
             # pool.close()
@@ -414,13 +451,14 @@ def main():
             df = pd.DataFrame.from_dict(res_list)
             df.index = df['dir']
             df = df.drop('dir', axis=1)
-            df.to_pickle(f'/work/scratch/westfechtel/manpickles/mesh/{sys.argv[1]}')
+            df.to_pickle(f'out/mesh')
 
     except Exception as e:
         logging.error(traceback.format_exc())
         logging.error(sys.argv)
 
     logging.info(f'total execution time: {time() - t}')
+    q_listener.stop()
 
 
 if __name__ == '__main__':

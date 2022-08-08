@@ -3,6 +3,9 @@ import math
 import pprint
 import sys
 import traceback
+import multiprocessing
+import time
+import random
 from collections import defaultdict
 from concurrent.futures import TimeoutError
 from time import time
@@ -12,6 +15,7 @@ import pandas as pd
 from numpy.polynomial import polynomial as poly
 from pebble import ProcessPool
 from pebble.common import ProcessExpired
+from logging.handlers import QueueHandler, QueueListener
 
 import utility
 
@@ -229,7 +233,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                     layer_thickness[label][i] = utility.vector_distance(
                         point[0], point[1]) * sitk_image.GetSpacing()[1]
 
-                logging.info(f'{fails} failed classifications (of {i})')
+                # logging.info(f'{fails} failed classifications (of {i})')
                 keys = set(layer_thickness.keys())
                 for key in keys:
                     dictionary[key] = np.hstack(
@@ -251,7 +255,7 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                     layer_thickness[label][i] = utility.vector_distance(
                         point[0], point[1]) * sitk_image.GetSpacing()[1]
 
-                logging.info(f'{fails} failed classifications (of {i})')
+                # logging.info(f'{fails} failed classifications (of {i})')
                 keys = set(layer_thickness.keys())
                 for key in keys:
                     dictionary[key] = np.hstack(
@@ -261,7 +265,8 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
 
 
 def function_for_pool(directory):
-    segmentation_directory = f'/images/Shape/Medical/Knees/OAI/Manual_Segmentations/{directory}/{directory}_segm.mhd'
+    tt = time()
+    segmentation_directory = f'../Manual_Segmentations/{directory}/{directory}_segm.mhd'
     # segmentation_directory = f'/work/scratch/westfechtel/segmentations/{directory}'
     # segmentation_directory = '9144760_segm.mhd'
     sitk_image, np_image = utility.read_image(segmentation_directory)
@@ -308,51 +313,67 @@ def function_for_pool(directory):
     total_thickness['aMT'] = np.zeros(1)
     total_thickness['cMT'] = np.zeros(1)
 
+    n_tibia = 0
+    n_femur = 0
+
     t = time()
     xs, layers = build_cwbz_layers(cwbzl)
+    for layer in layers:
+        n_femur += len(np.arange(min([x[0] for x in layer]), max([x[0] for x in layer])))
     total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                  xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=True, left=True, label=None,
                                                  tibia=False, split_vector=None)
-    logging.info(f'{directory} finished calculations for cwbzl in {time() - t} seconds.')
+    # logging.info(f'{directory} finished calculations for cwbzl in {time() - t} seconds.')
+
 
     t = time()
     xs, layers = build_cwbz_layers(cwbzr)
+    for layer in layers:
+        n_femur += len(np.arange(min([x[0] for x in layer]), max([x[0] for x in layer])))
     total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                  xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=True, left=False, label=None,
                                                  tibia=False, split_vector=None)
-    logging.info(f'{directory} finished calculations for cwbzr in {time() - t} seconds.')
+    # logging.info(f'{directory} finished calculations for cwbzr in {time() - t} seconds.')
 
     t = time()
     xs, layers = build_peripheral_layers(lpdf)
+    for layer in layers:
+        n_femur += len(np.arange(min([x[0] for x in layer]), max([x[0] for x in layer])))
     total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                  xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=False, left=False, label='pLF',
                                                  tibia=False, split_vector=None, pdf=True)
-    logging.info(f'{directory} finished calculations for lpdf in {time() - t} seconds.')
+    # logging.info(f'{directory} finished calculations for lpdf in {time() - t} seconds.')
 
     t = time()
     xs, layers = build_peripheral_layers(rpdf)
+    for layer in layers:
+        n_femur += len(np.arange(min([x[0] for x in layer]), max([x[0] for x in layer])))
     total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                  xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=False, left=False, label='pMF',
                                                  tibia=False, split_vector=None, pdf=True)
-    logging.info(f'{directory} finished calculations for rpdf in {time() - t} seconds.')
+    # logging.info(f'{directory} finished calculations for rpdf in {time() - t} seconds.')
 
     t = time()
     xs, layers = build_peripheral_layers(ladf)
+    for layer in layers:
+        n_femur += len(np.arange(min([x[0] for x in layer]), max([x[0] for x in layer])))
     total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                  xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=False, left=False, label='aLF',
                                                  tibia=False, split_vector=None)
 
     xs, layers = build_peripheral_layers(radf)
+    for layer in layers:
+        n_femur += len(np.arange(min([x[0] for x in layer]), max([x[0] for x in layer])))
     total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                  xs=xs, left_landmarks=left_landmarks,
                                                  right_landmarks=right_landmarks, cwbz=False, left=False, label='aMF',
                                                  tibia=False, split_vector=None)
-    logging.info(f'{directory} finished calculations for adf in {time() - t} seconds.')
+    # logging.info(f'{directory} finished calculations for adf in {time() - t} seconds.')
 
     # lower_mesh, upper_mesh = utility.build_tibial_meshes(tibial_vectors)
     # left_landmarks, right_landmarks, split_vector = utility.tibial_landmarks(
@@ -377,19 +398,23 @@ def function_for_pool(directory):
     try:
         t = time()
         xs, layers = build_cwbz_layers(ldf)
+        for layer in layers:
+            n_tibia += len(np.arange(min([x[0] for x in layer]), max([x[0] for x in layer])))
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=True, label=None,
                                                      tibia=True, split_vector=split_vector)
-        logging.info(f'{directory} finished calculations for ldf in {time() - t} seconds.')
+        # logging.info(f'{directory} finished calculations for ldf in {time() - t} seconds.')
 
         t = time()
         xs, layers = build_cwbz_layers(rdf)
+        for layer in layers:
+            n_tibia += len(np.arange(min([x[0] for x in layer]), max([x[0] for x in layer])))
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
                                                      label=None, tibia=True, split_vector=split_vector)
-        logging.info(f'{directory} finished calculations for rdf in {time() - t} seconds.')
+        # logging.info(f'{directory} finished calculations for rdf in {time() - t} seconds.')
     except Exception:
         logging.error(traceback.format_exc())
         return dict()
@@ -406,21 +431,48 @@ def function_for_pool(directory):
             np.sort(value)[:math.ceil(len(value) * 0.01)])
         total_thickness[key] = np.nanmean(value)
 
+    print(f'{directory} finished.')
+    logging.info(f'::{time() - tt}::')
+    logging.info(f'++{n_tibia}++')
+    logging.info(f'<<{n_femur}>>')
     return {**{'dir': directory}, **total_thickness}
 
 
+def worker_init(q):
+    # all records from worker processes go to qh and then into q
+    qh = QueueHandler(q)
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(qh)
+
+
+def logger_init():
+    q = multiprocessing.Queue()
+    # this is the handler for all log records
+    handler = logging.FileHandler(f'logs/fn.log', mode='w')
+    handler.setFormatter(logging.Formatter("%(levelname)s: %(asctime)s - %(process)s - %(message)s"))
+
+    # ql gets records from the queue and sends them to the handler
+    ql = QueueListener(q, handler)
+    ql.start()
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    # add the handler to the logger so records from this process are handled
+    logger.addHandler(handler)
+
+    return ql, q
+
+
 def main():
-    logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/function_normals/function_normals_default.log',
+    logging.basicConfig(filename='logs/function_normals_default.log',
                         encoding='utf-8', level=logging.DEBUG, filemode='w')
     logging.debug('Entered main.')
 
     try:
-        assert len(sys.argv) == 2
-        chunk = np.load(f'/work/scratch/westfechtel/chunks/{sys.argv[1]}.npy')
-        # chunk = sys.argv[1]
 
         filehandler = logging.FileHandler(
-            f'/work/scratch/westfechtel/pylogs/function_normals/{sys.argv[1]}.log', mode='w')
+            f'logs/fn.log', mode='w')
         filehandler.setLevel(logging.DEBUG)
         root = logging.getLogger()
         for handler in root.handlers[:]:
@@ -428,16 +480,19 @@ def main():
 
         root.addHandler(filehandler)
 
-        files = utility.get_subdirs(chunk)
+        q_listener, q = logger_init()
+
+        files = utility.get_subdirs(None)
+        files = files[:50]
+        print(len(files))
 
         # debug !!
         # files = files[-100:-1]
 
-        logging.info(f'Using chunk {sys.argv[1]} with length {len(files)}.')
 
         res_list = list()
         t = time()
-        with ProcessPool() as pool:
+        with ProcessPool(initializer=worker_init, initargs=[q]) as pool:
             res = pool.map(function_for_pool, files, timeout=3600)
             # res = pool.map(function=function_for_pool, iterables=files, chunksize=int(len(files)/8), timeout=180)
             # pool.close()
@@ -465,12 +520,13 @@ def main():
         df.index = df['dir']
         df = df.drop('dir', axis=1)
         df.to_pickle(
-            f'/work/scratch/westfechtel/manpickles/function_normals/{sys.argv[1]}')
+            f'out/fn_chunk_2_roa01')
     except Exception as e:
         logging.debug(traceback.format_exc())
         logging.debug(sys.argv)
 
     logging.info(f'total execution time: {time() - t}')
+    q_listener.stop()
 
 
 def test():

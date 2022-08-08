@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import pyvista as pv
 from sklearn.cluster import KMeans
+from logging.handlers import QueueHandler, QueueListener
 
 import utility
 
@@ -94,7 +95,7 @@ def fun(directory):
     :param directory: The image file to read
     :return: A dictionary containing the file name and average thickness and statistical measures for each subregion
     """
-    segmentation_directory = f'/images/Shape/Medical/Knees/OAI/Manual_Segmentations/{directory}/{directory}_segm.mhd'
+    segmentation_directory = f'../Manual_Segmentations/{directory}/{directory}_segm.mhd'
     # segmentation_directory = f'/work/scratch/westfechtel/segmentations/{directory}'
     sitk_image, np_image = utility.read_image(segmentation_directory)
 
@@ -207,6 +208,8 @@ def fun(directory):
     inner_points = [item[0] for item in res]
     outer_points = [item[1] for item in res]
 
+    n_femur = len(outer_points)
+
     left_thickness = dict()
     left_thickness['ecLF'] = np.zeros(len(outer_points))
     left_thickness['ccLF'] = np.zeros(len(outer_points))
@@ -225,6 +228,8 @@ def fun(directory):
 
     inner_points = [item[0] for item in res]
     outer_points = [item[1] for item in res]
+
+    n_femur += len(outer_points)
 
     right_thickness = dict()
     right_thickness['ecMF'] = np.zeros(len(outer_points))
@@ -311,6 +316,8 @@ def fun(directory):
     inner_points = [item[0] for item in res]
     outer_points = [item[1] for item in res]
 
+    n_femur += len(outer_points)
+
     femoral_thickness['pLF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
@@ -325,6 +332,8 @@ def fun(directory):
 
     inner_points = [item[0] for item in res]
     outer_points = [item[1] for item in res]
+
+    n_femur += len(outer_points)
 
     femoral_thickness['pMF'] = np.zeros(len(outer_points))
 
@@ -341,6 +350,8 @@ def fun(directory):
     inner_points = [item[0] for item in res]
     outer_points = [item[1] for item in res]
 
+    n_femur += len(outer_points)
+
     femoral_thickness['aLF'] = np.zeros(len(outer_points))
 
     for i in range(len(outer_points)):
@@ -355,6 +366,8 @@ def fun(directory):
 
     inner_points = [item[0] for item in res]
     outer_points = [item[1] for item in res]
+
+    n_femur += len(outer_points)
 
     femoral_thickness['aMF'] = np.zeros(len(outer_points))
 
@@ -414,6 +427,8 @@ def fun(directory):
     inner_points = [item[0] for item in res]
     outer_points = [item[1] for item in res]
 
+    n_tibia = len(outer_points)
+
     tibial_thickness = dict()
     
     tibial_thickness['cLT'] = np.zeros(len(outer_points))
@@ -457,6 +472,8 @@ def fun(directory):
     inner_points = [item[0] for item in res]
     outer_points = [item[1] for item in res]
 
+    n_tibia += len(outer_points)
+
     tibial_thickness['cMT'] = np.zeros(len(outer_points))
     tibial_thickness['aMT'] = np.zeros(len(outer_points))
     tibial_thickness['eMT'] = np.zeros(len(outer_points))
@@ -481,20 +498,20 @@ def fun(directory):
         tibial_thickness[key + '.aMiv'] = np.nanmean(np.sort(value)[:math.ceil(len(value) * 0.01)])
         tibial_thickness[key] = np.nanmean(value)
 
+    logging.info(f'++{n_tibia}++')
+    logging.info(f'<<{n_femur}>>')
+
     return {**{'dir': directory}, **femoral_thickness, **tibial_thickness}
 
 
 def main():
-    logging.basicConfig(filename='/work/scratch/westfechtel/pylogs/sphere/sphere_default.log', encoding='utf-8',
+    logging.basicConfig(filename='logs/sphere_default.log', encoding='utf-8',
                         level=logging.DEBUG, filemode='w')
     logging.debug('Entered main.')
 
     try:
-        assert len(sys.argv) == 2
-        chunk = np.load(f'/work/scratch/westfechtel/chunks/{sys.argv[1]}.npy')
-        # chunk = sys.argv[1]
 
-        filehandler = logging.FileHandler(f'/work/scratch/westfechtel/pylogs/sphere/{sys.argv[1]}.log', mode='w')
+        filehandler = logging.FileHandler(f'logs/sphere.log', mode='w')
         filehandler.setLevel(logging.DEBUG)
         root = logging.getLogger()
         for handler in root.handlers[:]:
@@ -502,16 +519,20 @@ def main():
 
         root.addHandler(filehandler)
 
-        dirs = utility.get_subdirs(chunk)
-        logging.debug(f'Using chunk {sys.argv[1]} with length {len(dirs)}.')
+        dirs = utility.get_subdirs(None)
+
+        dirs = dirs[:50]
 
         res = np.empty(len(dirs), dtype='object')
         t = time()
         for i, directory in enumerate(dirs):
+            tt = time()
             try:
                 res[i] = fun(directory)
+                logging.info(f'::{time() - tt}::')
                 if i % 10 == 0:
                     logging.debug(f'Iteration #{i}')
+                    print(f'Iteration #{i}')
             except Exception:
                 logging.error(traceback.format_exc())
                 continue
@@ -523,7 +544,7 @@ def main():
         df.index = df['dir']
         df = df.drop('dir', axis=1)
         # df.to_excel('mesh.xlsx')
-        df.to_pickle(f'/work/scratch/westfechtel/manpickles/sphere/{sys.argv[1]}')
+        df.to_pickle(f'out/sphere')
     except Exception as e:
         logging.debug(traceback.format_exc())
         logging.debug(sys.argv)

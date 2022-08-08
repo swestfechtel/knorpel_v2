@@ -2,18 +2,22 @@ import logging
 import math
 import sys
 import traceback
-from collections import defaultdict
-from concurrent.futures import TimeoutError
-from time import time
+import function_normals
+import utility
+import time
+import multiprocessing
 
 import numpy as np
 import pandas as pd
+
+from collections import defaultdict
+from concurrent.futures import TimeoutError
+from time import time
 from numpy.polynomial import polynomial as poly
 from pebble import ProcessPool
 from pebble.common import ProcessExpired
-
-import function_normals
-import utility
+from scipy.optimize import fsolve
+from logging.handlers import QueueHandler, QueueListener
 
 
 def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmarks, right_landmarks, cwbz=True,
@@ -62,20 +66,33 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
             logging.warning(f'Got error while trying to fit function. Return empty dict.')
             return dict()
 
-        upper_fun = poly.polyval(upper_points['x'], upper_fit)
-        lower_fun = poly.polyval(lower_points['x'], lower_fit)
+        der = poly.polyder(lower_fit)
+        # new_x = np.arange(min(lower_points['x']), max(lower_points['x']), step=.01)
+        new_x = lower_points['x'].to_numpy()
 
         layer_thickness = dict()
         if cwbz:
             if left:
-                layer_thickness['ecLF'] = np.zeros(len(x))
-                layer_thickness['ccLF'] = np.zeros(len(x))
-                layer_thickness['icLF'] = np.zeros(len(x))
+                layer_thickness['ecLF'] = np.zeros(len(new_x))
+                layer_thickness['ccLF'] = np.zeros(len(new_x))
+                layer_thickness['icLF'] = np.zeros(len(new_x))
 
-                for i, val in enumerate(x):
+                for i, val in enumerate(new_x):
                     label = utility.classify_femoral_point(
                         np.array([xs[layer_index], val]), left_landmarks, left=True)
-                    layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * \
+                    der = poly.polyder(lower_fit)
+                    der = poly.polyder(lower_fit)
+                    normal = poly.polyval(val, lower_fit) - (1 / poly.polyval(val, der)) * (new_x - val)
+                    idx = np.argwhere(np.diff(np.sign(normal - poly.polyval(new_x, upper_fit)))).flatten()
+                    lower_intersection_x = new_x[i]
+                    lower_intersection_y = poly.polyval(lower_intersection_x, lower_fit)
+                    upper_intersection_x = new_x[idx]
+                    if len(upper_intersection_x) == 0:
+                        continue
+                    upper_intersection_x = upper_intersection_x[0]
+                    upper_intersection_y = poly.polyval(upper_intersection_x, upper_fit)
+
+                    layer_thickness[label][i] = utility.vector_distance(np.array([lower_intersection_x, lower_intersection_y]), np.array([upper_intersection_x, upper_intersection_y])) * \
                                                 sitk_image.GetSpacing()[1]
 
                 keys = set(layer_thickness.keys())
@@ -83,14 +100,25 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                     dictionary[key] = np.hstack(
                         (dictionary[key], layer_thickness[key]))
             else:
-                layer_thickness['ecMF'] = np.zeros(len(x))
-                layer_thickness['ccMF'] = np.zeros(len(x))
-                layer_thickness['icMF'] = np.zeros(len(x))
+                layer_thickness['ecMF'] = np.zeros(len(new_x))
+                layer_thickness['ccMF'] = np.zeros(len(new_x))
+                layer_thickness['icMF'] = np.zeros(len(new_x))
 
-                for i, val in enumerate(x):
+                for i, val in enumerate(new_x):
                     label = utility.classify_femoral_point(
                         np.array([xs[layer_index], val]), right_landmarks, left=False)
-                    layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * \
+                    der = poly.polyder(lower_fit)
+                    normal = poly.polyval(val, lower_fit) - (1 / poly.polyval(val, der)) * (new_x - val)
+                    idx = np.argwhere(np.diff(np.sign(normal - poly.polyval(new_x, upper_fit)))).flatten()
+                    lower_intersection_x = new_x[i]
+                    lower_intersection_y = poly.polyval(lower_intersection_x, lower_fit)
+                    upper_intersection_x = new_x[idx]
+                    if len(upper_intersection_x) == 0:
+                        continue
+                    upper_intersection_x = upper_intersection_x[0]
+                    upper_intersection_y = poly.polyval(upper_intersection_x, upper_fit)
+
+                    layer_thickness[label][i] = utility.vector_distance(np.array([lower_intersection_x, lower_intersection_y]), np.array([upper_intersection_x, upper_intersection_y])) * \
                                                 sitk_image.GetSpacing()[1]
 
                 keys = set(layer_thickness.keys())
@@ -98,9 +126,20 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                     dictionary[key] = np.hstack(
                         (dictionary[key], layer_thickness[key]))
         elif not cwbz and not tibia:
-            layer_thickness[label] = np.zeros(len(x))
-            for i, val in enumerate(x):
-                layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * \
+            layer_thickness[label] = np.zeros(len(new_x))
+            for i, val in enumerate(new_x):
+                der = poly.polyder(lower_fit)
+                normal = poly.polyval(val, lower_fit) - (1 / poly.polyval(val, der)) * (new_x - val)
+                idx = np.argwhere(np.diff(np.sign(normal - poly.polyval(new_x, upper_fit)))).flatten()
+                lower_intersection_x = new_x[i]
+                lower_intersection_y = poly.polyval(lower_intersection_x, lower_fit)
+                upper_intersection_x = new_x[idx]
+                if len(upper_intersection_x) == 0:
+                    continue
+                upper_intersection_x = upper_intersection_x[0]
+                upper_intersection_y = poly.polyval(upper_intersection_x, upper_fit)
+
+                layer_thickness[label][i] = utility.vector_distance(np.array([lower_intersection_x, lower_intersection_y]), np.array([upper_intersection_x, upper_intersection_y])) * \
                                             sitk_image.GetSpacing()[1]
 
             keys = set(layer_thickness.keys())
@@ -109,46 +148,68 @@ def calculate_region_thickness(sitk_image, layers, dictionary, xs, left_landmark
                     (dictionary[key], layer_thickness[key]))
         else:
             if left:
-                layer_thickness['eLT'] = np.zeros(len(x))
-                layer_thickness['pLT'] = np.zeros(len(x))
-                layer_thickness['iLT'] = np.zeros(len(x))
-                layer_thickness['aLT'] = np.zeros(len(x))
-                layer_thickness['cLT'] = np.zeros(len(x))
+                layer_thickness['eLT'] = np.zeros(len(new_x))
+                layer_thickness['pLT'] = np.zeros(len(new_x))
+                layer_thickness['iLT'] = np.zeros(len(new_x))
+                layer_thickness['aLT'] = np.zeros(len(new_x))
+                layer_thickness['cLT'] = np.zeros(len(new_x))
 
                 fails = 0
-                for i, val in enumerate(x):
+                for i, val in enumerate(new_x):
                     label = utility.classify_tibial_point(np.array(
                         [xs[layer_index], val]), left_landmarks, right_landmarks, split_vector)
                     if label in set(['cMT', 'aMT', 'eMT', 'pMT', 'iMT']):
                         fails += 1
                         continue
-                    layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * \
+                    der = poly.polyder(lower_fit)
+                    normal = poly.polyval(val, lower_fit) - (1 / poly.polyval(val, der)) * (new_x - val)
+                    idx = np.argwhere(np.diff(np.sign(normal - poly.polyval(new_x, upper_fit)))).flatten()
+                    lower_intersection_x = new_x[i]
+                    lower_intersection_y = poly.polyval(lower_intersection_x, lower_fit)
+                    upper_intersection_x = new_x[idx]
+                    if len(upper_intersection_x) == 0:
+                        continue
+                    upper_intersection_x = upper_intersection_x[0]
+                    upper_intersection_y = poly.polyval(upper_intersection_x, upper_fit)
+
+                    layer_thickness[label][i] = utility.vector_distance(np.array([lower_intersection_x, lower_intersection_y]), np.array([upper_intersection_x, upper_intersection_y])) * \
                                                 sitk_image.GetSpacing()[1]
                 
-                logging.info(f'{fails} failed classifications (of {i})')
+                # logging.info(f'{fails} failed classifications (of {i})')
                 keys = set(layer_thickness.keys())
                 for key in keys:
                     dictionary[key] = np.hstack(
                         (dictionary[key], layer_thickness[key]))
             else:
                 
-                layer_thickness['eMT'] = np.zeros(len(x))
-                layer_thickness['pMT'] = np.zeros(len(x))
-                layer_thickness['iMT'] = np.zeros(len(x))
-                layer_thickness['aMT'] = np.zeros(len(x))
-                layer_thickness['cMT'] = np.zeros(len(x))
+                layer_thickness['eMT'] = np.zeros(len(new_x))
+                layer_thickness['pMT'] = np.zeros(len(new_x))
+                layer_thickness['iMT'] = np.zeros(len(new_x))
+                layer_thickness['aMT'] = np.zeros(len(new_x))
+                layer_thickness['cMT'] = np.zeros(len(new_x))
 
                 fails = 0
-                for i, val in enumerate(x):
+                for i, val in enumerate(new_x):
                     label = utility.classify_tibial_point(np.array(
                         [xs[layer_index], val]), left_landmarks, right_landmarks, split_vector)
                     if label in set(['cLT', 'aLT', 'eLT', 'pLT', 'iLT']):
                         fails += 1           
                         continue
-                    layer_thickness[label][i] = (poly.polyval(val, upper_fit) - poly.polyval(val, lower_fit)) * \
+                    der = poly.polyder(lower_fit)
+                    normal = poly.polyval(val, lower_fit) - (1 / poly.polyval(val, der)) * (new_x - val)
+                    idx = np.argwhere(np.diff(np.sign(normal - poly.polyval(new_x, upper_fit)))).flatten()
+                    lower_intersection_x = new_x[i]
+                    lower_intersection_y = poly.polyval(lower_intersection_x, lower_fit)
+                    upper_intersection_x = new_x[idx]
+                    if len(upper_intersection_x) == 0:
+                        continue
+                    upper_intersection_x = upper_intersection_x[0]
+                    upper_intersection_y = poly.polyval(upper_intersection_x, upper_fit)
+
+                    layer_thickness[label][i] = utility.vector_distance(np.array([lower_intersection_x, lower_intersection_y]), np.array([upper_intersection_x, upper_intersection_y])) * \
                                                 sitk_image.GetSpacing()[1]
                 
-                logging.info(f'{fails} failed classifications (of {i})')
+                # logging.info(f'{fails} failed classifications (of {i})')
                 keys = set(layer_thickness.keys())
                 for key in keys:
                     dictionary[key] = np.hstack(
@@ -211,51 +272,58 @@ def function_for_pool(directory):
     try:
         xs, layers = function_normals.build_cwbz_layers(cwbzl)
         for layer in layers:
-            n_femur += len(layer)
+            n_femur += len(np.arange(min([x[0] for x in layer]), max([x[0] for x in layer])))
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=True, left=True, label=None,
                                                      tibia=False, split_vector=None, af=False)
+        
 
         xs, layers = function_normals.build_cwbz_layers(cwbzr)
         for layer in layers:
-            n_femur += len(layer)
+            n_femur += len(np.arange(min([x[0] for x in layer]), max([x[0] for x in layer])))
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=True, left=False, label=None,
                                                      tibia=False, split_vector=None, af=False)
+        
 
         xs, layers = function_normals.build_peripheral_layers(lpdf)
         for layer in layers:
-            n_femur += len(layer)
+            n_femur += len(np.arange(min([x[0] for x in layer]), max([x[0] for x in layer])))
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
                                                      label='pLF', tibia=False, split_vector=None, af=False, pdf=True)
+        
 
         xs, layers = function_normals.build_peripheral_layers(rpdf)
         for layer in layers:
-            n_femur += len(layer)
+            n_femur += len(np.arange(min([x[0] for x in layer]), max([x[0] for x in layer])))
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
                                                      label='pMF', tibia=False, split_vector=None, af=False, pdf=True)
+        
 
         xs, layers = function_normals.build_peripheral_layers(ladf)
         for layer in layers:
-            n_femur += len(layer)
+            n_femur += len(np.arange(min([x[0] for x in layer]), max([x[0] for x in layer])))
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
                                                      label='aLF', tibia=False, split_vector=None, af=True)
+        
 
         xs, layers = function_normals.build_peripheral_layers(radf)
         for layer in layers:
-            n_femur += len(layer)
+            n_femur += len(np.arange(min([x[0] for x in layer]), max([x[0] for x in layer])))
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
                                                      label='aMF', tibia=False, split_vector=None, af=True)
+        
+
     except Exception:
         logging.error(traceback.format_exc())
         return dict()
@@ -283,19 +351,21 @@ def function_for_pool(directory):
     try:
         xs, layers = function_normals.build_cwbz_layers(ldf)
         for layer in layers:
-            n_tibia += len(layer)
+            n_tibia += len(np.arange(min([x[0] for x in layer]), max([x[0] for x in layer])))
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=True, label=None,
                                                      tibia=True, split_vector=split_vector, af=False)
+        
 
         xs, layers = function_normals.build_cwbz_layers(rdf)
         for layer in layers:
-            n_tibia += len(layer)
+            n_tibia += len(np.arange(min([x[0] for x in layer]), max([x[0] for x in layer])))
         total_thickness = calculate_region_thickness(sitk_image=sitk_image, layers=layers, dictionary=total_thickness,
                                                      xs=xs, left_landmarks=left_landmarks,
                                                      right_landmarks=right_landmarks, cwbz=False, left=False,
                                                      label=None, tibia=True, split_vector=split_vector, af=False)
+        
     except Exception:
         logging.error(traceback.format_exc())
         return dict()
@@ -318,21 +388,49 @@ def function_for_pool(directory):
     return {**{'dir': directory}, **total_thickness}
 
 
+def worker_init(q):
+    # all records from worker processes go to qh and then into q
+    qh = QueueHandler(q)
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(qh)
+
+
+def logger_init():
+    q = multiprocessing.Queue()
+    # this is the handler for all log records
+    handler = logging.FileHandler(f'logs/an.log', mode='w')
+    handler.setFormatter(logging.Formatter("%(levelname)s: %(asctime)s - %(process)s - %(message)s"))
+
+    # ql gets records from the queue and sends them to the handler
+    ql = QueueListener(q, handler)
+    ql.start()
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    # add the handler to the logger so records from this process are handled
+    logger.addHandler(handler)
+
+    return ql, q
+
+
 def main():
-    logging.basicConfig(filename='logs/function_values_default.log',
+    logging.basicConfig(filename='logs/analytical_normals_default.log',
                         encoding='utf-8', level=logging.DEBUG, filemode='w')
     logging.debug('Entered main.')
 
     try:
 
         filehandler = logging.FileHandler(
-            f'logs/fv.log', mode='w')
+            f'logs/an.log', mode='w')
         filehandler.setLevel(logging.DEBUG)
         root = logging.getLogger()
         for handler in root.handlers[:]:
             root.removeHandler(handler)
 
         root.addHandler(filehandler)
+
+        q_listener, q = logger_init()
 
         files = utility.get_subdirs(None)
 
@@ -344,7 +442,7 @@ def main():
 
         res_list = list()
         t = time()
-        with ProcessPool() as pool:
+        with ProcessPool(initializer=worker_init, initargs=[q]) as pool:
             res = pool.map(function_for_pool, files, timeout=1200)
             # res = pool.map(function=function_for_pool, iterables=files, chunksize=int(len(files)/8), timeout=180)
             # pool.close()
@@ -372,7 +470,7 @@ def main():
         df.index = df['dir']
         df = df.drop('dir', axis=1)
         df.to_pickle(
-            f'out/fv')
+            f'out/an')
     except Exception as e:
         logging.debug(traceback.format_exc())
         logging.debug(sys.argv)
